@@ -42,6 +42,12 @@ android {
 }
 
 dependencies {
+    // Навигация Compose
+    implementation("androidx.navigation:navigation-compose:2.7.7")
+
+    // Material Icons Extended
+    implementation("androidx.compose.material:material-icons-extended:1.6.0")
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
