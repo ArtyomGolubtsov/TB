@@ -3,7 +3,7 @@ package com.example.tb.ui.screens.home
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -67,7 +67,7 @@ fun HomeScreen() {
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Icon(
-                            imageVector = androidx.compose.material.icons.Icons.Default.ArrowForward,
+                            imageVector = Icons.Default.ArrowForward,
                             contentDescription = "Перейти"
                         )
                     }
