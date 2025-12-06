@@ -12,9 +12,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.tb.ui.navigation.Screen
-import com.example.tb.ui.navigation.screens
+import com.example.tb.ui.navigation.bottomScreens
+
 import com.example.tb.ui.screens.home.HomeScreen
 import com.example.tb.ui.screens.profile.ProfileScreen
+import com.example.tb.ui.screens.settings.SettingsMainScreen
+import com.example.tb.ui.screens.system_cold.CoolingRulesScreen
 import com.example.tb.ui.theme.TBTheme
 
 @Composable
@@ -24,11 +27,10 @@ fun MainScreen() {
     Scaffold(
         bottomBar = {
             NavigationBar {
-                // Получаем текущий маршрут
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentDestination = navBackStackEntry?.destination
 
-                screens.forEach { screen ->
+                bottomScreens.forEach { screen ->
                     NavigationBarItem(
                         icon = {
                             Icon(
@@ -40,13 +42,10 @@ fun MainScreen() {
                         selected = currentDestination?.route == screen.route,
                         onClick = {
                             navController.navigate(screen.route) {
-                                // Очищаем бэкстэк при нажатии на элемент навигации
                                 popUpTo(navController.graph.findStartDestination().id) {
                                     saveState = true
                                 }
-                                // Запускаем один экземпляр экрана
                                 launchSingleTop = true
-                                // Восстанавливаем состояние
                                 restoreState = true
                             }
                         }
@@ -55,7 +54,6 @@ fun MainScreen() {
             }
         }
     ) { innerPadding ->
-        // Определяем граф навигации
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
@@ -63,12 +61,77 @@ fun MainScreen() {
         ) {
             // Главный экран
             composable(Screen.Home.route) {
-                HomeScreen()
+                HomeScreen(
+                   /* onPurchasesClick = {
+                        navController.navigate(Screen.Purchases.route)
+                    },
+                    onHistoryClick = {
+                        navController.navigate(Screen.History.route)
+                    },
+                    onAddPurchaseClick = {
+                        navController.navigate(Screen.AddPurchase.route)
+                    },*/
+                    onSettingsClick = {
+                        navController.navigate(Screen.Settings.route)
+                    },
+                    onCoolingRulesClick = {
+                        navController.navigate(Screen.CoolingRules.route)
+                    }
+                )
+            }
+
+            /* Экран покупок
+            composable(Screen.Purchases.route) {
+                PurchasesScreen(
+                    onBackClick = { navController.navigateUp() },
+                    onAddPurchaseClick = {
+                        navController.navigate(Screen.AddPurchase.route)
+                    }
+                )
+            }
+
+            // Экран истории
+            composable(Screen.History.route) {
+                HistoryScreen(
+                    onBackClick = { navController.navigateUp() }
+                )
             }
 
             // Экран профиля
             composable(Screen.Profile.route) {
-                ProfileScreen()
+                ProfileScreen(
+                    onHistoryClick = {
+                        navController.navigate(Screen.History.route)
+                    }
+                )
+            }*/
+
+            // Экран настроек
+            composable(Screen.Settings.route) {
+                SettingsMainScreen(
+                    onBackClick = { navController.navigateUp() },
+                    onCoolingRulesClick = {
+                        navController.navigate(Screen.CoolingRules.route)
+                    }
+                )
+            }
+
+            /* Экран добавления покупки
+            composable(Screen.AddPurchase.route) {
+                AddPurchaseScreen(
+                    onBackClick = { navController.navigateUp() },
+                    onPurchaseAdded = {
+                        navController.popBackStack()
+                        navController.navigate(Screen.Purchases.route)
+                    }
+                )
+            }
+*/
+            // Экран правил охлаждения
+            composable(Screen.CoolingRules.route) {
+                CoolingRulesScreen(
+                    onBackClick = { navController.navigateUp() }
+                )
             }
         }
     }

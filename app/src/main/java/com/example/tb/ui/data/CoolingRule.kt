@@ -17,3 +17,18 @@ data class UserGoal(
     val startDate: Long = System.currentTimeMillis(),
     val isActive: Boolean = true
 )
+
+data class UserProfile(
+    val name: String,
+    val email: String,
+    val phone: String? = null,
+    val avatarUrl: String? = null,
+    val settings: UserSettings = UserSettings()
+)
+
+data class UserSettings(
+    val notificationsEnabled: Boolean = true,
+    val coolingRule: CoolingRule? = null,
+    val monthlyBudget: Double? = null,
+    val savingsGoal: Double? = null
+)
