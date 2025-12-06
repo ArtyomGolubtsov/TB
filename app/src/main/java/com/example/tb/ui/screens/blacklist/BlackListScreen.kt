@@ -178,12 +178,14 @@ fun CategoryMainCard(
     ) {
         Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
             if (category != null) {
-                // Иконка категории
-                Box(
+                // Иконка категории (теперь картинка)
+                Image(
+                    painter = painterResource(id = getIconResourceId(category.icon)),
+                    contentDescription = category.name,
                     modifier = Modifier
                         .size(20.dp, 18.dp)
-                        .align(Alignment.TopStart)
-                        .background(Color(0xFF2A64D9))
+                        .align(Alignment.TopStart),
+                    contentScale = ContentScale.Fit
                 )
 
                 // Название категории
@@ -371,44 +373,13 @@ fun CategoryIconItem(
                 ),
             contentAlignment = Alignment.Center
         ) {
-            // Иконка категории
-            when (category.icon) {
-                "clothes" -> Box(
-                    modifier = Modifier
-                        .size(20.dp, 18.dp)
-                        .background(Color(0xFF2A64D9))
-                )
-                "tech" -> Box(
-                    modifier = Modifier
-                        .size(22.dp, 20.dp)
-                        .background(Color(0xFF2A64D9))
-                )
-                "games" -> Box(
-                    modifier = Modifier
-                        .size(22.dp, 12.dp)
-                        .background(Color(0xFF2A64D9))
-                )
-                "cosmetics" -> Box(
-                    modifier = Modifier
-                        .size(22.dp, 19.dp)
-                        .background(Color(0xFF2A64D9))
-                )
-                "jewelry" -> Box(
-                    modifier = Modifier
-                        .size(20.dp, 17.dp)
-                        .clip(RoundedCornerShape(1.dp))
-                        .border(
-                            width = 1.dp,
-                            color = Color(0xFF2A64D9),
-                            shape = RoundedCornerShape(1.dp)
-                        )
-                )
-                else -> Box(
-                    modifier = Modifier
-                        .size(20.dp)
-                        .background(Color(0xFF2A64D9))
-                )
-            }
+            // Иконка категории (теперь картинка)
+            Image(
+                painter = painterResource(id = getIconResourceId(category.icon)),
+                contentDescription = category.name,
+                modifier = Modifier.size(24.dp),
+                contentScale = ContentScale.Fit
+            )
         }
 
         Text(
@@ -419,5 +390,21 @@ fun CategoryIconItem(
             textAlign = TextAlign.Center,
             maxLines = 2
         )
+    }
+}
+
+// Функция для получения ID ресурса иконки по строковому идентификатору
+fun getIconResourceId(icon: String): Int {
+    return when (icon) {
+        "clothes" -> R.drawable.vector1
+        "tech" -> R.drawable.vector3
+        "games" -> R.drawable.ic_videogame_asset_48px
+        "cosmetics" -> R.drawable.brush_fill
+        "jewelry" -> R.drawable.vector2
+        "books" -> R.drawable.vector3
+        "sport" -> R.drawable.vector3
+        "furniture" -> R.drawable.vector3
+        "travel" -> R.drawable.vector3
+        else -> R.drawable.vector1 // дефолтная иконка
     }
 }

@@ -8,12 +8,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.example.tb.R // Добавлен импорт для доступа к ресурсам
 
 // Модели данных
 data class BlacklistCategory(
     val id: Int,
     val name: String,
-    val icon: String,
+    val icon: String, // Оставляем строковый идентификатор
     val occurrence: Int,
     val totalSpent: Double,
     val isSelected: Boolean = false,

@@ -30,7 +30,7 @@ import com.example.tb.R
 data class AddableCategory(
     val id: Int,
     val name: String,
-    val icon: String,
+    val iconResId: Int, // Изменено: теперь храним ID ресурса
     var isSelected: Boolean
 )
 
@@ -41,19 +41,19 @@ fun AddCategoryScreen(
 ) {
     var searchText by remember { mutableStateOf(TextFieldValue("")) }
 
-    // Инициализируем список категорий
+    // Инициализируем список категорий с ID ресурсов для иконок
     val initialCategories = remember {
         listOf(
-            AddableCategory(1, "Одежда", "clothes", true),
-            AddableCategory(2, "Техника", "tech", true),
-            AddableCategory(3, "Игры", "games", false),
-            AddableCategory(4, "Косметика", "cosmetics", false),
-            AddableCategory(5, "Ювелирные изделия", "jewelry", false),
-            AddableCategory(6, "Электроника", "tech", false),
-            AddableCategory(7, "Книги", "books", false),
-            AddableCategory(8, "Спорт", "sport", false),
-            AddableCategory(9, "Мебель", "furniture", false),
-            AddableCategory(10, "Путешествия", "travel", false)
+            AddableCategory(1, "Одежда", R.drawable.vector1, true),
+            AddableCategory(2, "Техника", R.drawable.vector3, true),
+            AddableCategory(3, "Игры", R.drawable.ic_videogame_asset_48px, false),
+            AddableCategory(4, "Косметика", R.drawable.brush_fill, false),
+            AddableCategory(5, "Ювелирные изделия", R.drawable.vector2, false),
+            AddableCategory(6, "Электроника", R.drawable.vector3, false), // можно использовать ту же иконку
+            AddableCategory(7, "Книги", R.drawable.vector3, false),
+            AddableCategory(8, "Спорт", R.drawable.vector3, false),
+            AddableCategory(9, "Мебель", R.drawable.vector3, false),
+            AddableCategory(10, "Путешествия", R.drawable.vector3, false)
         )
     }
 
@@ -226,44 +226,13 @@ fun AddableCategoryItem(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Иконка категории
-                when (category.icon) {
-                    "clothes" -> Box(
-                        modifier = Modifier
-                            .size(20.dp, 18.dp)
-                            .background(Color(0xFF2A64D9))
-                    )
-                    "tech" -> Box(
-                        modifier = Modifier
-                            .size(22.dp, 20.dp)
-                            .background(Color(0xFF2A64D9))
-                    )
-                    "games" -> Box(
-                        modifier = Modifier
-                            .size(22.dp, 12.dp)
-                            .background(Color(0xFF2A64D9))
-                    )
-                    "cosmetics" -> Box(
-                        modifier = Modifier
-                            .size(22.dp, 19.dp)
-                            .background(Color(0xFF2A64D9))
-                    )
-                    "jewelry" -> Box(
-                        modifier = Modifier
-                            .size(20.dp, 17.dp)
-                            .clip(RoundedCornerShape(1.dp))
-                            .border(
-                                width = 1.dp,
-                                color = Color(0xFF2A64D9),
-                                shape = RoundedCornerShape(1.dp)
-                            )
-                    )
-                    else -> Box(
-                        modifier = Modifier
-                            .size(20.dp)
-                            .background(Color(0xFF2A64D9))
-                    )
-                }
+                // Иконка категории (теперь картинка)
+                Image(
+                    painter = painterResource(id = category.iconResId),
+                    contentDescription = category.name,
+                    modifier = Modifier.size(20.dp),
+                    contentScale = ContentScale.Fit
+                )
 
                 // Название категории
                 Text(
