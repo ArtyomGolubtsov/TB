@@ -1,12 +1,12 @@
-package com.example.tb.ui.screens.system_cold
+package com.example.tb.ui.screens.cooling
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -18,40 +18,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tb.R
-import com.example.tb.data.CoolingRule
-import com.example.tb.ui.theme.TBTheme
 
 @Composable
 fun CoolingRulesScreen(
-    onBackClick: () -> Unit = {},
-    onSave: (CoolingRule) -> Unit = {}
+    onBackClick: () -> Unit = {}
 ) {
-    var selectedRule by remember { mutableStateOf(0) }
-
-    val coolingRules = listOf(
-        CoolingRule(
-            timeframe = "1 день",
-            amountRange = "до 15 000 ₽",
-            minAmount = 0.0,
-            maxAmount = 15000.0,
-            targetDays = 1
-        ),
-        CoolingRule(
-            timeframe = "1 неделя",
-            amountRange = "от 15 000 до 50 000 ₽",
-            minAmount = 15000.0,
-            maxAmount = 50000.0,
-            targetDays = 7
-        ),
-        CoolingRule(
-            timeframe = "1 месяц",
-            amountRange = "от 50 000 ₽",
-            minAmount = 50000.0,
-            maxAmount = null,
-            targetDays = 30
-        )
-    )
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -61,7 +32,7 @@ fun CoolingRulesScreen(
         Text(
             text = "Правила охлаждения",
             color = Color.White,
-            fontSize = 20.sp,
+            fontSize = 15.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -83,7 +54,7 @@ fun CoolingRulesScreen(
 
         // Стрелка назад
         Image(
-            painter = painterResource(id = R.drawable.ic_launcher_foreground),
+            painter = painterResource(id = R.drawable.path1),
             contentDescription = "Стрелка назад",
             contentScale = ContentScale.Fit,
             modifier = Modifier
@@ -100,37 +71,117 @@ fun CoolingRulesScreen(
                 .fillMaxWidth()
                 .padding(top = 187.dp)
                 .padding(horizontal = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            verticalArrangement = Arrangement.spacedBy(52.dp)
         ) {
-            // Радиокнопки для выбора правила
-            coolingRules.forEachIndexed { index, rule ->
-                RuleSelectionItem(
-                    rule = rule,
-                    isSelected = selectedRule == index,
-                    onClick = { selectedRule = index }
+            // Первая строка (1 день)
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "1 день",
+                    color = Color(0xFFFFEBEB), // Красноватый текст для выделения
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    lineHeight = 18.sp,
                 )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp)
+                        .clip(RoundedCornerShape(25.dp))
+                        .background(Color(0xFF333333)),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Text(
+                        text = "до 15 000 ₽",
+                        color = Color(0xFF767575),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        lineHeight = 18.sp,
+                        modifier = Modifier.padding(start = 15.dp)
+                    )
+                }
+            }
+
+            // Вторая строка (1 неделя)
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "1 неделя",
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    lineHeight = 18.sp,
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp)
+                        .clip(RoundedCornerShape(25.dp))
+                        .background(Color(0xFF333333)),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Text(
+                        text = "от 15 000 до 50 000 ₽",
+                        color = Color(0xFF767575),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        lineHeight = 18.sp,
+                        modifier = Modifier.padding(start = 15.dp)
+                    )
+                }
+            }
+
+            // Третья строка (1 месяц)
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "1 месяц",
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    lineHeight = 18.sp,
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp)
+                        .clip(RoundedCornerShape(25.dp))
+                        .background(Color(0xFF333333)),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Text(
+                        text = "от 50 000 ₽",
+                        color = Color(0xFF767575),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        lineHeight = 18.sp,
+                        modifier = Modifier.padding(start = 15.dp)
+                    )
+                }
             }
         }
 
         // Кнопка Сохранить
-        Button(
-            onClick = {
-                onSave(coolingRules[selectedRule])
-                onBackClick()
-            },
+        Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 42.dp)
                 .width(296.dp)
-                .height(56.dp),
-            shape = RoundedCornerShape(15.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFFFDD2D),
-                contentColor = Color(0xFF141414)
-            )
+                .height(56.dp)
+                .clip(RoundedCornerShape(15.dp))
+                .background(Color(0xFFFFDD2D))
+                .clickable {
+                    // TODO: Сохранить настройки
+                    onBackClick()
+                },
+            contentAlignment = Alignment.Center
         ) {
             Text(
                 text = "Сохранить",
+                color = Color(0xFF141414),
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Normal,
                 lineHeight = 24.sp
@@ -139,73 +190,8 @@ fun CoolingRulesScreen(
     }
 }
 
-@Composable
-fun RuleSelectionItem(
-    rule: CoolingRule,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
-        shape = RoundedCornerShape(25.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) Color(0xFF444444) else Color(0xFF333333)
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = rule.timeframe,
-                        color = if (isSelected) Color(0xFFFFEBEB) else Color.White,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = rule.amountRange,
-                        color = Color(0xFF767575),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-
-                // Радиокнопка
-                RadioButton(
-                    selected = isSelected,
-                    onClick = onClick,
-                    colors = RadioButtonDefaults.colors(
-                        selectedColor = Color(0xFFFFDD2D),
-                        unselectedColor = Color.Gray
-                    )
-                )
-            }
-
-            // Дополнительная информация
-            if (isSelected) {
-                Text(
-                    text = "Цель: ${rule.targetDays} день(дней)",
-                    color = Color(0xFFAAAAAA),
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
-        }
-    }
-}
-
 @Preview(showBackground = true)
 @Composable
 fun CoolingRulesScreenPreview() {
-    TBTheme {
-        CoolingRulesScreen()
-    }
+    CoolingRulesScreen()
 }

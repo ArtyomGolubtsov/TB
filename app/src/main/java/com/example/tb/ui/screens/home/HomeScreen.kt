@@ -24,7 +24,7 @@ fun HomeScreen(
     onCoolingRulesClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onBlacklistClick: () -> Unit = {},
-    onPurchasesClick: () -> Unit = {} // Добавим для навигации на покупки
+    onPurchasesClick: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -35,7 +35,7 @@ fun HomeScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(0.45f) // 45% высоты экрана
+                .weight(0.45f)
                 .background(Color.White)
         ) {
             // Основное изображение
@@ -74,7 +74,7 @@ fun HomeScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(0.55f) // 55% высоты экрана
+                .weight(0.55f)
                 .padding(16.dp)
         ) {
             // Сетка карточек
@@ -87,36 +87,38 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Карточка "Покупки" - занимает 40% ширины
+                    // Карточка "Покупки" - ИЗМЕНЕНО
                     Box(
                         modifier = Modifier
-                            .weight(0.4f)
-                            .aspectRatio(1f) // Квадратная
+                            .weight(0.7f)
+                            .aspectRatio(0.93f)
                             .clip(RoundedCornerShape(15.dp))
                             .background(Color(0xFF333333))
                             .clickable { onPurchasesClick() },
                         contentAlignment = Alignment.TopStart
                     ) {
-                        Column(
+                        // Надпись "Покупки" в левом верхнем углу
+                        Text(
+                            text = "Покупки",
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
                             modifier = Modifier
-                                .fillMaxSize()
-                                .padding(12.dp),
-                            verticalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "Покупки",
-                                color = Color.White,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                                .align(Alignment.TopStart)
+                                .padding(top = 20.dp, start = 20.dp)
+                        )
 
+                        // Иконка bag в правом нижнем углу
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(bottom = 12.dp, end = 12.dp)
+                        ) {
                             Image(
                                 painter = painterResource(id = R.drawable.bag_2),
                                 contentDescription = "Иконка покупок",
                                 contentScale = ContentScale.Fit,
-                                modifier = Modifier
-                                    .size(80.dp)
-                                    .align(Alignment.CenterHorizontally)
+                                modifier = Modifier.size(120.dp)
                             )
                         }
                     }
@@ -139,7 +141,7 @@ fun HomeScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .padding(horizontal = 12.dp),
+                                    .padding(horizontal = 16.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {

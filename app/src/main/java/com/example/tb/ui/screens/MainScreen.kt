@@ -1,88 +1,110 @@
 package com.example.tb.ui.screens
 
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.tb.ui.navigation.Screen
-import com.example.tb.ui.navigation.bottomScreens
-
 import com.example.tb.ui.screens.home.HomeScreen
-import com.example.tb.ui.screens.profile.ProfileScreen
-import com.example.tb.ui.screens.settings.SettingsMainScreen
-import com.example.tb.ui.screens.system_cold.CoolingRulesScreen
-import com.example.tb.ui.theme.TBTheme
+import com.example.tb.ui.screens.setting.SettingsMainScreen
+import com.example.tb.ui.screens.cooling.CoolingRulesScreen
+import com.example.tb.ui.screens.buyers.PurchaseScreen
+import com.example.tb.ui.screens.addbuyers.AddPurchaseScreen
+import com.example.tb.ui.screens.finance.FinanceScreen
+import com.example.tb.ui.screens.blacklist.BlackListScreen  // ← ИМПОРТ
+import com.example.tb.ui.screens.blacklist.AddCategoryScreen // ← ИМПОРТ
+import com.example.tb.ui.screens.blacklist.BlacklistViewModel
 
 @Composable
 fun MainScreen() {
     val navController = rememberNavController()
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar {
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentDestination = navBackStackEntry?.destination
-
-                bottomScreens.forEach { screen ->
-                    NavigationBarItem(
-                        icon = {
-                            Icon(
-                                imageVector = screen.icon,
-                                contentDescription = screen.title
-                            )
-                        },
-                        label = { Text(screen.title) },
-                        selected = currentDestination?.route == screen.route,
-                        onClick = {
-                            navController.navigate(screen.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
-                    )
-                }
-            }
-        }
-    ) { innerPadding ->
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(0.dp)
         ) {
             // Главный экран
             composable(Screen.Home.route) {
                 HomeScreen(
-                   /* onPurchasesClick = {
-                        navController.navigate(Screen.Purchases.route)
-                    },
-                    onHistoryClick = {
-                        navController.navigate(Screen.History.route)
-                    },
-                    onAddPurchaseClick = {
-                        navController.navigate(Screen.AddPurchase.route)
-                    },*/
                     onSettingsClick = {
                         navController.navigate(Screen.Settings.route)
                     },
                     onCoolingRulesClick = {
                         navController.navigate(Screen.CoolingRules.route)
+                    },
+                    onBlacklistClick = {  // ← ОБНОВИТЕ ЭТУ СТРОКУ
+                        navController.navigate(Screen.Blacklist.route)
+                    },
+                    onPurchasesClick = {
+                        navController.navigate(Screen.Purchases.route)
                     }
                 )
             }
 
-            /* Экран покупок
+            // Экран черного списка
+            composable(Screen.Blacklist.route) {
+                BlackListScreen(
+                    onBackClick = { navController.navigateUp() },
+                    onAddCategoryClick = {
+                        navController.navigate(Screen.AddCategory.route)
+                    }
+                )
+            }
+
+            // Экран добавления категории
+            composable(Screen.AddCategory.route) {
+                AddCategoryScreen(
+                    onBackClick = { navController.navigateUp() },
+                    onSaveClick = { selectedCategories ->
+                        // Обработка сохранения выбранных категорий
+                        // Можно передать в ViewModel или сохранить локально
+                        navController.navigateUp()
+                    }
+                )
+            }
+
+            composable(Screen.Blacklist.route) {
+                val viewModel = remember { BlacklistViewModel() }
+
+                BlackListScreen(
+                    onBackClick = { navController.navigateUp() },
+                    onAddCategoryClick = {
+                        navController.navigate(Screen.AddCategory.route)
+                    }
+                )
+            }
+
+            composable(Screen.AddCategory.route) {
+                AddCategoryScreen(
+                    onBackClick = { navController.navigateUp() },
+                    onSaveClick = { selectedCategories ->
+                        // Сохранить выбранные категории
+                        // Можно обновить SharedPreferences или локальную БД
+                        navController.navigateUp()
+                    }
+                )
+            }
+
+            // Остальные экраны...
+            composable(Screen.Finance.route) {
+                FinanceScreen(
+                    onBackClick = { navController.navigateUp() }
+                )
+            }
+
             composable(Screen.Purchases.route) {
-                PurchasesScreen(
+                PurchaseScreen(
                     onBackClick = { navController.navigateUp() },
                     onAddPurchaseClick = {
                         navController.navigate(Screen.AddPurchase.route)
@@ -90,23 +112,15 @@ fun MainScreen() {
                 )
             }
 
-            // Экран истории
-            composable(Screen.History.route) {
-                HistoryScreen(
-                    onBackClick = { navController.navigateUp() }
+            composable(Screen.AddPurchase.route) {
+                AddPurchaseScreen(
+                    onBackClick = { navController.navigateUp() },
+                    onAddClick = {
+                        navController.navigateUp()
+                    }
                 )
             }
 
-            // Экран профиля
-            composable(Screen.Profile.route) {
-                ProfileScreen(
-                    onHistoryClick = {
-                        navController.navigate(Screen.History.route)
-                    }
-                )
-            }*/
-
-            // Экран настроек
             composable(Screen.Settings.route) {
                 SettingsMainScreen(
                     onBackClick = { navController.navigateUp() },
@@ -116,31 +130,11 @@ fun MainScreen() {
                 )
             }
 
-            /* Экран добавления покупки
-            composable(Screen.AddPurchase.route) {
-                AddPurchaseScreen(
-                    onBackClick = { navController.navigateUp() },
-                    onPurchaseAdded = {
-                        navController.popBackStack()
-                        navController.navigate(Screen.Purchases.route)
-                    }
-                )
-            }
-*/
-            // Экран правил охлаждения
             composable(Screen.CoolingRules.route) {
                 CoolingRulesScreen(
                     onBackClick = { navController.navigateUp() }
                 )
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun MainScreenPreview() {
-    TBTheme {
-        MainScreen()
     }
 }
