@@ -1,28 +1,48 @@
 package com.example.tb.ui.screens.setting
 
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,13 +55,12 @@ import com.example.tb.ui.theme.TBTheme
 fun SettingsMainScreen(
     onBackClick: () -> Unit = {},
     onCoolingRulesClick: () -> Unit = {},
-    onSaveSuccess: () -> Unit = {} // Callback при успешном сохранении
+    onSaveSuccess: () -> Unit = {}
 ) {
     val viewModel: SettingsViewModel = viewModel()
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
 
-    // Состояние для диалогов
     var showFrequencyDialog by remember { mutableStateOf(false) }
     var showChannelDialog by remember { mutableStateOf(false) }
     var showErrorDialog by remember { mutableStateOf(false) }
@@ -52,7 +71,6 @@ fun SettingsMainScreen(
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        // Стрелка назад
         Box(
             modifier = Modifier
                 .size(24.dp)
@@ -70,7 +88,6 @@ fun SettingsMainScreen(
             )
         }
 
-        // Заголовок
         Text(
             text = "Настройки",
             color = Color.White,
@@ -182,16 +199,15 @@ fun SettingsMainScreen(
                 .clip(RoundedCornerShape(15.dp))
                 .background(Color(0xFFFFDD2D))
                 .clickable {
-                    if (state.isValid()) {
-                        viewModel.saveSettings {
-                            // Показываем Toast или Snackbar
-                            // Toast.makeText(context, "Настройки сохранены", Toast.LENGTH_SHORT).show()
+                    viewModel.saveSettings(
+                        onSuccess = {
                             onSaveSuccess()
+                        },
+                        onError = { error ->
+                            errorMessage = error
+                            showErrorDialog = true
                         }
-                    } else {
-                        errorMessage = "Заполните все обязательные поля корректными числами"
-                        showErrorDialog = true
-                    }
+                    )
                 },
             contentAlignment = Alignment.Center
         ) {
@@ -238,6 +254,7 @@ fun SettingsMainScreen(
     }
 }
 
+// ========== NotificationSection ==========
 @Composable
 fun NotificationSection(
     notificationFrequency: NotificationFrequency,
@@ -252,7 +269,6 @@ fun NotificationSection(
             .background(Color(0xFF333333))
             .padding(vertical = 12.dp)
     ) {
-        // Заголовок раздела
         Text(
             text = "Уведомления",
             color = Color.White,
@@ -262,7 +278,6 @@ fun NotificationSection(
             modifier = Modifier.padding(start = 11.dp, top = 2.dp)
         )
 
-        // Первый пункт - Частота уведомлений
         NotificationItem(
             text = "Как часто опрашивать о запланированных покупках",
             value = notificationFrequency.displayName,
@@ -270,7 +285,6 @@ fun NotificationSection(
             modifier = Modifier.padding(top = 8.dp)
         )
 
-        // Второй пункт - Канал уведомлений
         NotificationItem(
             text = "Выберите канал нотификации",
             value = notificationChannel.displayName,
@@ -337,6 +351,7 @@ fun NotificationItem(
     }
 }
 
+// ========== FinanceSection ==========
 @Composable
 fun FinanceSection(
     monthlySavings: String,
@@ -351,7 +366,6 @@ fun FinanceSection(
             .background(Color(0xFF333333))
             .padding(vertical = 12.dp)
     ) {
-        // Заголовок раздела
         Text(
             text = "Финансы",
             color = Color.White,
@@ -361,35 +375,46 @@ fun FinanceSection(
             modifier = Modifier.padding(start = 11.dp, top = 2.dp)
         )
 
-        // Поле ввода 1 - Сколько готовы откладывать
         FinanceInputField(
             label = "Сколько готовы откладывать в месяц:",
             value = monthlySavings,
             onValueChange = onMonthlySavingsChange,
-            placeholder = "₽",
-            modifier = Modifier.padding(top = 8.dp)
+            placeholder = "Например: 10 000 ₽",
+            modifier = Modifier.padding(top = 8.dp),
+            isNumericOnly = true
         )
 
-        // Поле ввода 2 - Доход
         FinanceInputField(
             label = "Введите ваш достаток:",
             value = income,
             onValueChange = onIncomeChange,
-            placeholder = "₽",
-            modifier = Modifier.padding(top = 15.dp)
+            placeholder = "Например: 50 000 ₽",
+            modifier = Modifier.padding(top = 15.dp),
+            isNumericOnly = true
         )
     }
 }
 
+// ========== FinanceInputField ==========
 @Composable
 fun FinanceInputField(
     label: String,
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isNumericOnly: Boolean = false
 ) {
     val focusRequester = remember { FocusRequester() }
+    var isFocused by remember { mutableStateOf(false) }
+    var displayText by remember { mutableStateOf(value) }
+
+    // Синхронизируем с внешним значением
+    LaunchedEffect(value) {
+        if (displayText != value) {
+            displayText = value
+        }
+    }
 
     Column(
         modifier = modifier
@@ -412,36 +437,71 @@ fun FinanceInputField(
                 .clip(RoundedCornerShape(25.dp))
                 .background(Color(0xFF494949))
                 .clickable { focusRequester.requestFocus() }
+                .border(
+                    width = 1.dp,
+                    color = if (isFocused) Color(0xFF2A64D9) else Color.Transparent,
+                    shape = RoundedCornerShape(25.dp)
+                )
         ) {
-            BasicTextField(
-                value = value,
-                onValueChange = { newText ->
-                    // Фильтруем только цифры
-                    val filtered = newText.filter { it.isDigit() }
-                    onValueChange(filtered)
+            androidx.compose.foundation.text.BasicTextField(
+                value = if (isFocused || !isNumericOnly) {
+                    // В режиме редактирования или для нечисловых полей - показываем как есть
+                    displayText
+                } else {
+                    // Для числовых полей вне фокуса - форматируем
+                    val cleaned = displayText.filter { it.isDigit() }
+                    val number = cleaned.toLongOrNull()
+                    if (number != null) {
+                        "%,d".format(number).replace(',', ' ') + " ₽"
+                    } else {
+                        displayText
+                    }
+                },
+                onValueChange = { newValue ->
+                    if (isNumericOnly) {
+                        // Для числовых полей - только цифры
+                        val filtered = newValue.filter { it.isDigit() }
+                        displayText = filtered
+                        onValueChange(filtered)
+                    } else {
+                        // Для нечисловых полей - все символы
+                        displayText = newValue
+                        onValueChange(newValue)
+                    }
                 },
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 12.dp, vertical = 6.dp)
-                    .focusRequester(focusRequester),
-                textStyle = androidx.compose.ui.text.TextStyle(
+                    .focusRequester(focusRequester)
+                    .onFocusChanged { focusState ->
+                        isFocused = focusState.isFocused
+                        if (!focusState.isFocused && isNumericOnly) {
+                            // При потере фокуса для числовых полей - сохраняем только цифры
+                            val cleaned = displayText.filter { it.isDigit() }
+                            displayText = cleaned
+                        }
+                    },
+                textStyle = TextStyle(
                     color = Color.White,
-                    fontSize = 12.sp
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Normal
                 ),
                 singleLine = true,
+                cursorBrush = SolidColor(Color.White),
                 decorationBox = { innerTextField ->
                     Box(
                         contentAlignment = Alignment.CenterStart,
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        if (value.isEmpty()) {
+                        if (displayText.isEmpty() && !isFocused) {
                             Text(
                                 text = placeholder,
                                 color = Color(0xFF888888),
-                                fontSize = 12.sp
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Normal
                             )
                         }
-                        innerTextField
+                        innerTextField()
                     }
                 }
             )
@@ -449,6 +509,7 @@ fun FinanceInputField(
     }
 }
 
+// ========== SavingsSection ==========
 @Composable
 fun SavingsSection(
     considerSavings: Boolean,
@@ -463,7 +524,6 @@ fun SavingsSection(
             .background(Color(0xFF333333))
             .padding(vertical = 12.dp)
     ) {
-        // Заголовок раздела
         Text(
             text = "Накопления",
             color = Color.White,
@@ -473,7 +533,6 @@ fun SavingsSection(
             modifier = Modifier.padding(start = 11.dp, top = 2.dp)
         )
 
-        // Переключатель
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -490,26 +549,26 @@ fun SavingsSection(
                 lineHeight = 20.sp
             )
 
-            // Кастомный переключатель
             CustomSwitch(
                 isChecked = considerSavings,
                 onCheckedChange = onConsiderSavingsChange
             )
         }
 
-        // Поле ввода - если переключатель включен
         if (considerSavings) {
             FinanceInputField(
                 label = "Введите размер текущих накоплений:",
                 value = currentSavings,
                 onValueChange = onCurrentSavingsChange,
-                placeholder = "₽",
-                modifier = Modifier.padding(top = 15.dp)
+                placeholder = "Например: 200 000 ₽",
+                modifier = Modifier.padding(top = 15.dp),
+                isNumericOnly = true
             )
         }
     }
 }
 
+// ========== CustomSwitch ==========
 @Composable
 fun CustomSwitch(
     isChecked: Boolean,
@@ -534,7 +593,7 @@ fun CustomSwitch(
     }
 }
 
-// Диалог выбора частоты уведомлений
+// ========== NotificationFrequencyDialog ==========
 @Composable
 fun NotificationFrequencyDialog(
     selectedFrequency: NotificationFrequency,
@@ -583,7 +642,7 @@ fun NotificationFrequencyDialog(
     }
 }
 
-// Диалог выбора канала уведомлений
+// ========== NotificationChannelDialog ==========
 @Composable
 fun NotificationChannelDialog(
     selectedChannel: NotificationChannel,
@@ -632,7 +691,7 @@ fun NotificationChannelDialog(
     }
 }
 
-// Диалог ошибки
+// ========== ErrorDialog ==========
 @Composable
 fun ErrorDialog(
     message: String,

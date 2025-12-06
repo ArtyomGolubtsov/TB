@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+
 data class SettingsState(
     val notificationFrequency: NotificationFrequency = NotificationFrequency.DAILY,
     val notificationChannel: NotificationChannel = NotificationChannel.PUSH,
@@ -17,9 +18,24 @@ data class SettingsState(
     val currentSavings: String = ""
 ) {
     fun isValid(): Boolean {
-        return monthlySavings.isNotBlank() && income.isNotBlank() &&
-                (monthlySavings.all { it.isDigit() } && income.all { it.isDigit() }) &&
-                (!considerSavings || (considerSavings && currentSavings.isNotBlank() && currentSavings.all { it.isDigit() }))
+        // Проверяем только что поля не пустые
+        val monthlySavingsValid = monthlySavings.isNotBlank()
+        val incomeValid = income.isNotBlank()
+        val currentSavingsValid = !considerSavings || currentSavings.isNotBlank()
+
+        return monthlySavingsValid && incomeValid && currentSavingsValid
+    }
+
+    fun getMonthlySavingsAsInt(): Int? {
+        return monthlySavings.toIntOrNull()
+    }
+
+    fun getIncomeAsInt(): Int? {
+        return income.toIntOrNull()
+    }
+
+    fun getCurrentSavingsAsInt(): Int? {
+        return currentSavings.toIntOrNull()
     }
 }
 
@@ -50,13 +66,15 @@ class SettingsViewModel : ViewModel() {
     }
 
     fun updateMonthlySavings(value: String) {
-        val filtered = value.filter { it.isDigit() }
-        _state.update { it.copy(monthlySavings = filtered) }
+        // Убираем только лишние пробелы и разрешаем все символы
+        val cleanedValue = value.trim()
+        _state.update { it.copy(monthlySavings = cleanedValue) }
     }
 
     fun updateIncome(value: String) {
-        val filtered = value.filter { it.isDigit() }
-        _state.update { it.copy(income = filtered) }
+        // Убираем только лишние пробелы и разрешаем все символы
+        val cleanedValue = value.trim()
+        _state.update { it.copy(income = cleanedValue) }
     }
 
     fun updateConsiderSavings(value: Boolean) {
@@ -64,20 +82,75 @@ class SettingsViewModel : ViewModel() {
     }
 
     fun updateCurrentSavings(value: String) {
-        val filtered = value.filter { it.isDigit() }
-        _state.update { it.copy(currentSavings = filtered) }
+        // Убираем только лишние пробелы и разрешаем все символы
+        val cleanedValue = value.trim()
+        _state.update { it.copy(currentSavings = cleanedValue) }
     }
 
-    fun saveSettings(onSuccess: () -> Unit) {
+    fun saveSettings(onSuccess: () -> Unit, onError: (String) -> Unit = {}) {
         viewModelScope.launch {
-            if (state.value.isValid()) {
+            val currentState = state.value
+
+            // Проверяем валидность полей
+            val errors = mutableListOf<String>()
+
+            if (currentState.monthlySavings.isEmpty()) {
+                errors.add("Введите сумму для ежемесячных накоплений")
+            } else if (currentState.getMonthlySavingsAsInt() == null) {
+                errors.add("Некорректная сумма для ежемесячных накоплений. Используйте только цифры")
+            }
+
+            if (currentState.income.isEmpty()) {
+                errors.add("Введите ваш доход")
+            } else if (currentState.getIncomeAsInt() == null) {
+                errors.add("Некорректная сумма дохода. Используйте только цифры")
+            }
+
+            if (currentState.considerSavings && currentState.currentSavings.isEmpty()) {
+                errors.add("Введите размер текущих накоплений")
+            } else if (currentState.considerSavings && currentState.getCurrentSavingsAsInt() == null) {
+                errors.add("Некорректная сумма текущих накоплений. Используйте только цифры")
+            }
+
+            if (errors.isEmpty()) {
                 // Здесь можно сохранить в SharedPreferences или в базу данных
-                // Например: repository.saveSettings(state.value)
+                saveToPreferences(
+                    monthlySavings = currentState.getMonthlySavingsAsInt() ?: 0,
+                    income = currentState.getIncomeAsInt() ?: 0,
+                    considerSavings = currentState.considerSavings,
+                    currentSavings = currentState.getCurrentSavingsAsInt() ?: 0,
+                    notificationFrequency = currentState.notificationFrequency,
+                    notificationChannel = currentState.notificationChannel
+                )
 
                 onSuccess()
             } else {
-                // Показать ошибку валидации
+                onError(errors.joinToString("\n"))
             }
         }
+    }
+
+    private fun saveToPreferences(
+        monthlySavings: Int,
+        income: Int,
+        considerSavings: Boolean,
+        currentSavings: Int,
+        notificationFrequency: NotificationFrequency,
+        notificationChannel: NotificationChannel
+    ) {
+        // TODO: Реализовать сохранение в SharedPreferences
+        // Пример:
+        /*
+        val sharedPref = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        with(sharedPref.edit()) {
+            putInt("monthly_savings", monthlySavings)
+            putInt("income", income)
+            putBoolean("consider_savings", considerSavings)
+            putInt("current_savings", currentSavings)
+            putString("notification_frequency", notificationFrequency.name)
+            putString("notification_channel", notificationChannel.name)
+            apply()
+        }
+        */
     }
 }

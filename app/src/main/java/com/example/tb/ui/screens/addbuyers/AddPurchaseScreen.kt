@@ -2,6 +2,7 @@ package com.example.tb.ui.screens.addbuyers
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,13 +12,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -30,10 +33,10 @@ fun AddPurchaseScreen(
     onBackClick: () -> Unit = {},
     onAddClick: () -> Unit = {}
 ) {
-    var link by remember { mutableStateOf(TextFieldValue()) }
-    var name by remember { mutableStateOf(TextFieldValue()) }
-    var category by remember { mutableStateOf(TextFieldValue()) }
-    var amount by remember { mutableStateOf(TextFieldValue()) }
+    var link by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf("") }
+    var category by remember { mutableStateOf("") }
+    var amount by remember { mutableStateOf("") }
 
     // Получаем ViewModel
     val viewModel: PurchaseViewModel = viewModel()
@@ -103,38 +106,10 @@ fun AddPurchaseScreen(
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
 
-                BasicTextField(
+                SimpleTextField(
                     value = link,
                     onValueChange = { link = it },
-                    textStyle = TextStyle(
-                        color = if (link.text.isEmpty()) Color(0xFF494949) else Color.White,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    cursorBrush = SolidColor(Color.White),
-                    modifier = Modifier
-                        .width(278.dp)
-                        .height(36.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(Color(0xFF333333))
-                        .padding(horizontal = 15.dp, vertical = 10.dp),
-                    singleLine = true,
-                    decorationBox = { innerTextField ->
-                        Box(
-                            contentAlignment = Alignment.CenterStart,
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            if (link.text.isEmpty()) {
-                                Text(
-                                    text = "https://...",
-                                    color = Color(0xFF494949),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                            innerTextField()
-                        }
-                    }
+                    placeholder = "https://..."
                 )
             }
 
@@ -160,38 +135,10 @@ fun AddPurchaseScreen(
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
 
-                BasicTextField(
+                SimpleTextField(
                     value = name,
                     onValueChange = { name = it },
-                    textStyle = TextStyle(
-                        color = if (name.text.isEmpty()) Color(0xFF494949) else Color.White,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    cursorBrush = SolidColor(Color.White),
-                    modifier = Modifier
-                        .width(278.dp)
-                        .height(36.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(Color(0xFF333333))
-                        .padding(horizontal = 15.dp, vertical = 10.dp),
-                    singleLine = true,
-                    decorationBox = { innerTextField ->
-                        Box(
-                            contentAlignment = Alignment.CenterStart,
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            if (name.text.isEmpty()) {
-                                Text(
-                                    text = "Кроссовки",
-                                    color = Color(0xFF494949),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                            innerTextField()
-                        }
-                    }
+                    placeholder = "Кроссовки"
                 )
             }
 
@@ -209,38 +156,10 @@ fun AddPurchaseScreen(
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
 
-                BasicTextField(
+                SimpleTextField(
                     value = category,
                     onValueChange = { category = it },
-                    textStyle = TextStyle(
-                        color = if (category.text.isEmpty()) Color(0xFF494949) else Color.White,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    cursorBrush = SolidColor(Color.White),
-                    modifier = Modifier
-                        .width(278.dp)
-                        .height(36.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(Color(0xFF333333))
-                        .padding(horizontal = 15.dp, vertical = 10.dp),
-                    singleLine = true,
-                    decorationBox = { innerTextField ->
-                        Box(
-                            contentAlignment = Alignment.CenterStart,
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            if (category.text.isEmpty()) {
-                                Text(
-                                    text = "Одежда",
-                                    color = Color(0xFF494949),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                            innerTextField()
-                        }
-                    }
+                    placeholder = "Одежда"
                 )
             }
 
@@ -258,49 +177,10 @@ fun AddPurchaseScreen(
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
 
-                BasicTextField(
+                SimpleNumericTextField(
                     value = amount,
-                    onValueChange = {
-                        // Фильтруем только цифры
-                        val filtered = it.text.filter { char -> char.isDigit() }
-                        amount = it.copy(text = filtered)
-                    },
-                    textStyle = TextStyle(
-                        color = if (amount.text.isEmpty()) Color(0xFF494949) else Color.White,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    cursorBrush = SolidColor(Color.White),
-                    modifier = Modifier
-                        .width(278.dp)
-                        .height(36.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(Color(0xFF333333))
-                        .padding(horizontal = 15.dp, vertical = 10.dp),
-                    singleLine = true,
-                    decorationBox = { innerTextField ->
-                        Box(
-                            contentAlignment = Alignment.CenterStart,
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            if (amount.text.isEmpty()) {
-                                Text(
-                                    text = "2000",
-                                    color = Color(0xFF494949),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            } else {
-                                Text(
-                                    text = "${amount.text} ₽",
-                                    color = Color.White,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                            innerTextField()
-                        }
-                    }
+                    onValueChange = { amount = it },
+                    placeholder = "2000"
                 )
             }
         }
@@ -309,14 +189,14 @@ fun AddPurchaseScreen(
         Button(
             onClick = {
                 // Валидация полей
-                if (name.text.isNotEmpty() && category.text.isNotEmpty() && amount.text.isNotEmpty()) {
+                if (name.isNotEmpty() && category.isNotEmpty() && amount.isNotEmpty()) {
                     try {
-                        val amountValue = amount.text.toDouble()
+                        val amountValue = amount.filter { it.isDigit() }.toDouble()
                         viewModel.addPurchase(
-                            title = name.text,
-                            category = category.text,
+                            title = name,
+                            category = category,
                             amount = amountValue,
-                            link = link.text
+                            link = link
                         )
                         onAddClick() // Возвращаемся назад
                     } catch (e: NumberFormatException) {
@@ -324,6 +204,7 @@ fun AddPurchaseScreen(
                     }
                 }
             },
+            enabled = name.isNotEmpty() && category.isNotEmpty() && amount.isNotEmpty(),
             modifier = Modifier
                 .width(296.dp)
                 .height(96.dp)
@@ -331,7 +212,10 @@ fun AddPurchaseScreen(
                 .padding(bottom = 42.dp),
             shape = RoundedCornerShape(15.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFFFDD2D),
+                containerColor = if (name.isNotEmpty() && category.isNotEmpty() && amount.isNotEmpty())
+                    Color(0xFFFFDD2D)
+                else
+                    Color(0xFF616161),
                 contentColor = Color(0xFF141414)
             ),
             contentPadding = PaddingValues(horizontal = 25.dp, vertical = 16.dp)
@@ -344,5 +228,168 @@ fun AddPurchaseScreen(
                 modifier = Modifier.fillMaxWidth()
             )
         }
+    }
+}
+
+@Composable
+fun SimpleTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String
+) {
+    val focusRequester = remember { FocusRequester() }
+    var isFocused by remember { mutableStateOf(false) }
+    var localValue by remember { mutableStateOf(value) }
+
+    // Синхронизируем с внешним значением
+    LaunchedEffect(value) {
+        if (localValue != value) {
+            localValue = value
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .width(278.dp)
+            .height(36.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color(0xFF333333))
+            .border(
+                width = 1.dp,
+                color = if (isFocused) Color(0xFF2A64D9) else Color.Transparent,
+                shape = RoundedCornerShape(10.dp)
+            )
+            .clickable { focusRequester.requestFocus() }
+    ) {
+        BasicTextField(
+            value = localValue,
+            onValueChange = { newValue ->
+                // Для текстовых полей - любой текст
+                localValue = newValue
+                onValueChange(newValue)
+            },
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 15.dp, vertical = 10.dp)
+                .focusRequester(focusRequester)
+                .onFocusChanged { focusState ->
+                    isFocused = focusState.isFocused
+                },
+            textStyle = TextStyle(
+                color = Color.White,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold
+            ),
+            singleLine = true,
+            cursorBrush = SolidColor(Color.White),
+            decorationBox = { innerTextField ->
+                Box(
+                    contentAlignment = Alignment.CenterStart,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    if (localValue.isEmpty() && !isFocused) {
+                        Text(
+                            text = placeholder,
+                            color = Color(0xFF494949),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    innerTextField()
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun SimpleNumericTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String
+) {
+    val focusRequester = remember { FocusRequester() }
+    var isFocused by remember { mutableStateOf(false) }
+    var localValue by remember { mutableStateOf(value) }
+
+    // Синхронизируем с внешним значением
+    LaunchedEffect(value) {
+        if (localValue != value) {
+            localValue = value
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .width(278.dp)
+            .height(36.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color(0xFF333333))
+            .border(
+                width = 1.dp,
+                color = if (isFocused) Color(0xFF2A64D9) else Color.Transparent,
+                shape = RoundedCornerShape(10.dp)
+            )
+            .clickable {
+                focusRequester.requestFocus()
+                isFocused = true
+            }
+    ) {
+        BasicTextField(
+            value = if (isFocused) localValue else {
+                if (localValue.isEmpty()) {
+                    ""
+                } else {
+                    val cleaned = localValue.filter { it.isDigit() }
+                    val number = cleaned.toLongOrNull()
+                    if (number != null) {
+                        "%,d ₽".format(number).replace(',', ' ')
+                    } else {
+                        localValue
+                    }
+                }
+            },
+            onValueChange = { newValue ->
+                // Только цифры
+                val filtered = newValue.filter { it.isDigit() }
+                localValue = filtered
+                onValueChange(filtered)
+            },
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 15.dp, vertical = 10.dp)
+                .focusRequester(focusRequester)
+                .onFocusChanged { focusState ->
+                    isFocused = focusState.isFocused
+                    if (!focusState.isFocused) {
+                        // При потере фокуса сохраняем только цифры
+                        val cleaned = localValue.filter { it.isDigit() }
+                        localValue = cleaned
+                    }
+                },
+            textStyle = TextStyle(
+                color = Color.White,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold
+            ),
+            singleLine = true,
+            cursorBrush = SolidColor(Color.White),
+            decorationBox = { innerTextField ->
+                Box(
+                    contentAlignment = Alignment.CenterStart,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    if (!isFocused && localValue.isEmpty()) {
+                        Text(
+                            text = placeholder,
+                            color = Color(0xFF494949),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    innerTextField()
+                }
+            }
+        )
     }
 }
