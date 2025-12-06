@@ -15,7 +15,6 @@ import com.example.tb.ui.navigation.Screen
 import com.example.tb.ui.navigation.screens
 import com.example.tb.ui.screens.home.HomeScreen
 import com.example.tb.ui.screens.profile.ProfileScreen
-
 import com.example.tb.ui.theme.TBTheme
 
 @Composable
@@ -67,12 +66,10 @@ fun MainScreen() {
                 HomeScreen()
             }
 
-
             // Экран профиля
             composable(Screen.Profile.route) {
                 ProfileScreen()
             }
-
         }
     }
 }

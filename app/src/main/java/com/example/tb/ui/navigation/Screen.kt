@@ -1,7 +1,7 @@
 package com.example.tb.ui.navigation
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -13,7 +13,6 @@ sealed class Screen(
     val icon: ImageVector
 ) {
     object Home : Screen("home", "Главная", Icons.Default.Home)
-    object Search : Screen("search", "Поиск", Icons.Default.Search)
     object Profile : Screen("profile", "Профиль", Icons.Default.Person)
     object Settings : Screen("settings", "Настройки", Icons.Default.Settings)
 }
