@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "939620066100",
+    "project_id": "t-bank-c545e",
+    "storage_bucket": "t-bank-c545e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:939620066100:android:aa30b3b9b8d03947fcbb61",
+        "android_client_info": {
+          "package_name": "com.example.tb"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDsclu7qcWmLCgKb-zW2uK7Xy8h2kTNZMw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
