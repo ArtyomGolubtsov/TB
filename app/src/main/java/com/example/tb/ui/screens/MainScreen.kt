@@ -50,7 +50,7 @@ fun MainScreen(startDestinationRoute: String = Screen.Home.route) {
     ) {
         NavHost(
             navController = navController,
-            startDestination = Screen.Home.route,
+            startDestination = startDestinationRoute,
             modifier = Modifier.padding(0.dp)
         ) {
 
