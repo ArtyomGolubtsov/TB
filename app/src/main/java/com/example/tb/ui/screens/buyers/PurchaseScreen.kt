@@ -288,7 +288,7 @@ fun HistoryList(
                             if (netBalance >= 0) Color(0xFF29BF1F) else Color(0xFFEE6B42)
 
                         Text(
-                            text = "Баланс: ${viewModel.formatAmount(netBalance)}",
+                            text = "Не потрачено: ${viewModel.formatAmount(netBalance)}",
                             color = balanceColor,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium
@@ -691,7 +691,7 @@ fun CancelPurchaseDialog(
                 )
 
                 Text(
-                    text = "Ты сэкономишь ${purchase.amount.toInt()} ₽!",
+                    text = "Ты не потратишь ${purchase.amount.toInt()} ₽!",
                     color = Color(0xFF29BF1F),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,

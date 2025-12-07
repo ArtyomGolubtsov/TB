@@ -15,6 +15,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.tb.ui.navigation.Screen
 import com.example.tb.ui.screens.addbuyers.AddPurchaseScreen
+import com.example.tb.ui.screens.blacklist.AddCategoryScreen
 import com.example.tb.ui.screens.blacklist.BlackListScreen
 import com.example.tb.ui.screens.blacklist.BlacklistViewModel
 import com.example.tb.ui.screens.buyers.PurchaseScreen
@@ -98,6 +99,15 @@ fun MainScreen(startDestinationRoute: String = Screen.Home.route) {
                     onBackClick = { navController.navigateUp() },
                     onAddPurchaseClick = {
                         navController.navigate(Screen.AddPurchase.route)
+                    }
+                )
+            }
+
+            composable(Screen.AddCategory.route) {
+                AddCategoryScreen(
+                    onBackClick = { navController.navigateUp() },
+                    onSaveClick = { selectedCategories ->
+                        navController.navigateUp()
                     }
                 )
             }

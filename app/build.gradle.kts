@@ -47,6 +47,9 @@ dependencies {
     // Навигация Compose
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
+
+    implementation("com.google.code.gson:gson:2.10.1")
+
     // Material Icons Extended
     implementation("androidx.compose.material:material-icons-extended:1.6.0")
 
@@ -61,6 +64,7 @@ dependencies {
     implementation(libs.firebase.messaging)
     implementation(libs.androidx.compose.foundation.layout)
     implementation(libs.androidx.compose.foundation)
+    implementation(libs.firebase.crashlytics.buildtools)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
