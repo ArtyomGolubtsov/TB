@@ -30,10 +30,11 @@ import com.example.tb.R
 
 @Composable
 fun CoolingRulesScreen(
+    coolingRulesViewModel: CoolingRulesViewModel,
     onBackClick: () -> Unit = {}
 ) {
-    val viewModel: CoolingRulesViewModel = viewModel()
-    val state by viewModel.state.collectAsState()
+    // ИСПОЛЬЗУЕМ переданный coolingRulesViewModel
+    val state by coolingRulesViewModel.state.collectAsState()
     val context = LocalContext.current
 
     var showErrorDialog by remember { mutableStateOf(false) }
@@ -41,7 +42,7 @@ fun CoolingRulesScreen(
 
     // Загружаем сохранённые правила один раз
     LaunchedEffect(Unit) {
-        viewModel.loadRules(context)
+        coolingRulesViewModel.loadRules(context)
     }
 
     Box(
@@ -107,7 +108,7 @@ fun CoolingRulesScreen(
                 )
                 CoolingInputField(
                     value = state.dayLimit,
-                    onValueChange = { viewModel.updateDayLimit(it) },
+                    onValueChange = { coolingRulesViewModel.updateDayLimit(it) },
                     prefix = "до",
                     suffix = "₽"
                 )
@@ -130,7 +131,7 @@ fun CoolingRulesScreen(
                 ) {
                     CoolingInputField(
                         value = state.weekMinLimit,
-                        onValueChange = { viewModel.updateWeekMinLimit(it) },
+                        onValueChange = { coolingRulesViewModel.updateWeekMinLimit(it) },
                         prefix = "от",
                         modifier = Modifier.weight(1f)
                     )
@@ -143,7 +144,7 @@ fun CoolingRulesScreen(
                     )
                     CoolingInputField(
                         value = state.weekMaxLimit,
-                        onValueChange = { viewModel.updateWeekMaxLimit(it) },
+                        onValueChange = { coolingRulesViewModel.updateWeekMaxLimit(it) },
                         suffix = "₽",
                         modifier = Modifier.weight(1f)
                     )
@@ -163,7 +164,7 @@ fun CoolingRulesScreen(
                 )
                 CoolingInputField(
                     value = state.monthLimit,
-                    onValueChange = { viewModel.updateMonthLimit(it) },
+                    onValueChange = { coolingRulesViewModel.updateMonthLimit(it) },
                     prefix = "от",
                     suffix = "₽"
                 )
@@ -180,7 +181,7 @@ fun CoolingRulesScreen(
                 .clip(RoundedCornerShape(15.dp))
                 .background(Color(0xFFFFDD2D))
                 .clickable {
-                    viewModel.saveRules(
+                    coolingRulesViewModel.saveRules(
                         context = context,
                         onSuccess = {
                             onBackClick()
@@ -203,7 +204,7 @@ fun CoolingRulesScreen(
         }
     }
 
-    // Простейший диалог ошибки (если хочешь — можно вынести в отдельный Composable)
+    // Простейший диалог ошибки
     if (showErrorDialog) {
         androidx.compose.ui.window.Dialog(onDismissRequest = { showErrorDialog = false }) {
             Box(
@@ -370,5 +371,9 @@ fun CoolingInputField(
 @Preview(showBackground = true)
 @Composable
 fun CoolingRulesScreenPreview() {
-    CoolingRulesScreen()
+    val coolingRulesViewModel: CoolingRulesViewModel = viewModel()
+    CoolingRulesScreen(
+        coolingRulesViewModel = coolingRulesViewModel,
+        onBackClick = {}
+    )
 }

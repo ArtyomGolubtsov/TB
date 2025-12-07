@@ -25,14 +25,52 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.tb.R
 import com.example.tb.ui.screens.buyers.PurchaseViewModel
+import com.example.tb.ui.screens.cooling.CoolingRulesViewModel
+import com.example.tb.ui.screens.setting.SettingsViewModel
+import kotlin.math.ceil
+
+// --- Определение классов внутри файла ---
+
+data class CoolingTimeOption(
+    val id: Int,
+    val name: String,
+    val description: String,
+    val days: Int,
+    val type: RecommendationType
+)
+
+enum class RecommendationType {
+    SAVINGS_BASED,  // На основе накоплений
+    SYSTEM_BASED,   // На основе системных правил
+    CUSTOM          // Пользовательский выбор
+}
+
+data class SavingsInfo(
+    val canBuyNow: Boolean,
+    val neededAmount: Double,
+    val monthsNeeded: Int,
+    val comfortableAmount: Double,
+    val currentSavings: Double,
+    val monthlySavings: Double,
+    val considerSavings: Boolean
+)
+
+data class SystemLimitInfo(
+    val exceedsAnyLimit: Boolean,
+    val limitType: String,
+    val limitValue: Int
+)
 
 @Composable
 fun AddPurchaseScreen(
-    viewModel: PurchaseViewModel,          // ← ПРИНИМАЕМ ViewModel СЮДА
+    purchaseViewModel: PurchaseViewModel,
+    coolingRulesViewModel: CoolingRulesViewModel,
+    settingsViewModel: SettingsViewModel,
     onBackClick: () -> Unit = {},
-    onAddClick: () -> Unit = {}           // можно использовать для доп. действий снаружи
+    onAddClick: () -> Unit = {}
 ) {
     var link by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
@@ -40,10 +78,15 @@ fun AddPurchaseScreen(
     var amount by remember { mutableStateOf("") }
     var selectedCoolingTime by remember { mutableStateOf<CoolingTimeOption?>(null) }
 
-    // УБРАЛО: val viewModel: PurchaseViewModel = viewModel()
+    // Получаем текущие правила охлаждения
+    val coolingRules by coolingRulesViewModel.state.collectAsState()
 
-    // Расчет рекомендованных времен на основе суммы
-    val (savingsBasedRecommendation, systemBasedRecommendation) = calculateRecommendations(amount)
+    // Получаем текущие настройки
+    val settings by settingsViewModel.state.collectAsState()
+
+    // Расчет рекомендованных времен на основе суммы, правил и настроек
+    val (savingsBasedRecommendation, systemBasedRecommendation) =
+        calculateRecommendations(amount, coolingRules, settings)
 
     Box(
         modifier = Modifier
@@ -184,38 +227,39 @@ fun AddPurchaseScreen(
         // Два блока с рекомендациями
         CoolingTimeRecommendations(
             amount = amount,
+            coolingRules = coolingRules,
+            settings = settings,
             savingsBasedRecommendation = savingsBasedRecommendation,
             systemBasedRecommendation = systemBasedRecommendation,
             selectedTime = selectedCoolingTime,
             onTimeSelected = { selectedCoolingTime = it },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 160.dp) // Отступ от кнопки "Добавить"
+                .padding(bottom = 160.dp)
         )
 
         // Кнопка "Добавить" внизу
         Button(
             onClick = {
-                // Валидация полей
                 if (name.isNotEmpty() && category.isNotEmpty() && amount.isNotEmpty()) {
                     try {
                         val amountValue = amount.filter { it.isDigit() }.toDouble()
                         val coolingDays = selectedCoolingTime?.days ?: 0
 
-                        viewModel.addPurchase(
+                        // Предположим, что у PurchaseViewModel есть метод addPurchase с coolingDays
+                        // Если нет - нужно его добавить
+                        purchaseViewModel.addPurchase(
                             title = name,
                             category = category,
                             amount = amountValue,
-                            link = link
+                            link = link,
+                            coolingDays = coolingDays // Добавляем сохранение времени охлаждения
                         )
 
-                        // Сохраняем выбранное время охлаждения (пока просто лог)
-                        println("Время охлаждения: ${selectedCoolingTime?.name}, дней: $coolingDays")
-
-                        onAddClick() // если снаружи что-то хотят сделать
-                        onBackClick() // возвращаемся назад к списку
+                        onAddClick()
+                        onBackClick()
                     } catch (e: NumberFormatException) {
-                        // Обработка ошибки преобразования
+                        // Обработка ошибки
                     }
                 }
             },
@@ -246,53 +290,34 @@ fun AddPurchaseScreen(
     }
 }
 
-// --- Модель и вспомогательные сущности ---
+// --- Функции расчета ---
 
-data class CoolingTimeOption(
-    val id: Int,
-    val name: String,
-    val description: String,
-    val days: Int,
-    val type: RecommendationType
-)
-
-enum class RecommendationType {
-    SAVINGS_BASED,  // На основе накоплений
-    SYSTEM_BASED,   // На основе системных правил
-    CUSTOM          // Пользовательский выбор
-}
-
-// Расчет рекомендованных времен
 @Composable
-fun calculateRecommendations(amount: String): Pair<CoolingTimeOption, CoolingTimeOption> {
+fun calculateRecommendations(
+    amount: String,
+    coolingRules: com.example.tb.ui.screens.cooling.CoolingRulesState,
+    settings: com.example.tb.ui.screens.setting.SettingsState
+): Pair<CoolingTimeOption, CoolingTimeOption> {
     val amountValue = amount.filter { it.isDigit() }.toDoubleOrNull() ?: 0.0
 
-    val savingsBasedDays = when {
-        amountValue < 5000 -> 7
-        amountValue < 20000 -> 14
-        amountValue < 50000 -> 30
-        amountValue < 100000 -> 60
-        else -> 90
-    }
+    // 1. Расчет по накоплениям (рекомендованный период)
+    val savingsBasedDays = calculateSavingsBasedCoolingDays(amountValue, settings)
 
-    val systemBasedDays = when {
-        amountValue < 15000 -> 7
-        amountValue < 50000 -> 14
-        else -> 30
-    }
+    // 2. Расчет по системным правилам
+    val systemBasedDays = calculateSystemBasedCoolingDays(amountValue, coolingRules)
 
     val savingsOption = CoolingTimeOption(
         id = 1,
-        name = "$savingsBasedDays дней",
-        description = "С учетом ваших накоплений",
+        name = formatCoolingPeriod(savingsBasedDays),
+        description = "Период накопления до комфортной покупки",
         days = savingsBasedDays,
         type = RecommendationType.SAVINGS_BASED
     )
 
     val systemOption = CoolingTimeOption(
         id = 2,
-        name = "$systemBasedDays дней",
-        description = "В связи с ценой больше предела",
+        name = formatCoolingPeriod(systemBasedDays),
+        description = "По вашим правилам охлаждения",
         days = systemBasedDays,
         type = RecommendationType.SYSTEM_BASED
     )
@@ -300,9 +325,118 @@ fun calculateRecommendations(amount: String): Pair<CoolingTimeOption, CoolingTim
     return Pair(savingsOption, systemOption)
 }
 
+// Форматирование периода охлаждения
+fun formatCoolingPeriod(days: Int): String {
+    return when {
+        days == 0 -> "0 дней (сейчас)"
+        days < 30 -> "$days ${getDayWord(days)}"
+        else -> {
+            val months = days / 30
+            val remainingDays = days % 30
+            val result = StringBuilder("$months ${getMonthWord(months)}")
+            if (remainingDays > 0) {
+                result.append(" $remainingDays ${getDayWord(remainingDays)}")
+            }
+            result.toString()
+        }
+    }
+}
+
+fun getDayWord(days: Int): String = when {
+    days == 1 -> "день"
+    days in 2..4 -> "дня"
+    else -> "дней"
+}
+
+fun getMonthWord(months: Int): String = when {
+    months == 1 -> "месяц"
+    months in 2..4 -> "месяца"
+    else -> "месяцев"
+}
+
+// Функция расчета периода охлаждения на основе накоплений и настроек
+fun calculateSavingsBasedCoolingDays(purchaseAmount: Double, settings: com.example.tb.ui.screens.setting.SettingsState): Int {
+    // Получаем данные из настроек
+    val monthlySavings = settings.getMonthlySavingsAsInt()?.toDouble() ?: 5000.0
+    val currentSavings = if (settings.considerSavings) {
+        settings.getCurrentSavingsAsInt()?.toDouble() ?: 0.0
+    } else {
+        0.0
+    }
+    val comfortableThreshold = 0.5 // Комфортный порог (остаток 50%)
+
+    // Если покупка бесплатная или очень дешевая
+    if (purchaseAmount <= 0) return 0
+
+    // Проверяем, можем ли купить сразу с комфортом
+    if (purchaseAmount <= currentSavings * comfortableThreshold) {
+        return 0 // Можем купить сразу
+    }
+
+    // Если не учитываем накопления или их нет
+    if (!settings.considerSavings || currentSavings <= 0) {
+        // Простой расчет по ежемесячным накоплениям
+        val monthsNeeded = ceil(purchaseAmount / monthlySavings).toInt()
+        return monthsNeeded * 30
+    }
+
+    // Рассчитываем необходимую дополнительную сумму
+    val neededAmount = purchaseAmount - (currentSavings * comfortableThreshold)
+
+    // Если ежемесячные накопления не настроены
+    if (monthlySavings <= 0) {
+        // Если сумма меньше комфортного порога, но не совсем
+        return when {
+            neededAmount <= currentSavings * 0.1 -> 7
+            neededAmount <= currentSavings * 0.25 -> 14
+            neededAmount <= currentSavings * 0.5 -> 30
+            neededAmount <= currentSavings -> 60
+            else -> 90
+        }
+    }
+
+    // Рассчитываем количество месяцев для накопления
+    val monthsNeeded = ceil(neededAmount / monthlySavings).toInt()
+
+    // Преобразуем в дни (приблизительно 30 дней в месяце)
+    val days = monthsNeeded * 30
+
+    // Ограничиваем максимальный период 2 годами
+    return days.coerceAtMost(730)
+}
+
+// Функция расчета периода охлаждения на основе системных правил
+fun calculateSystemBasedCoolingDays(
+    purchaseAmount: Double,
+    coolingRules: com.example.tb.ui.screens.cooling.CoolingRulesState
+): Int {
+    // Парсим значения из правил
+    val dayLimit = coolingRules.dayLimit.toIntOrNull() ?: 0
+    val weekMinLimit = coolingRules.weekMinLimit.toIntOrNull() ?: 0
+    val weekMaxLimit = coolingRules.weekMaxLimit.toIntOrNull() ?: 0
+    val monthLimit = coolingRules.monthLimit.toIntOrNull() ?: 0
+
+    // Определяем категорию покупки на основе лимитов
+    return when {
+        monthLimit > 0 && purchaseAmount > monthLimit -> 90
+        weekMaxLimit > 0 && purchaseAmount > weekMaxLimit -> 30
+        weekMinLimit > 0 && purchaseAmount > weekMinLimit -> 14
+        dayLimit > 0 && purchaseAmount > dayLimit -> 7
+        else -> when {
+            purchaseAmount < 15000 -> 7
+            purchaseAmount < 50000 -> 14
+            else -> 30
+        }
+    }
+}
+
+// --- Компонент рекомендаций ---
+
 @Composable
 fun CoolingTimeRecommendations(
     amount: String,
+    coolingRules: com.example.tb.ui.screens.cooling.CoolingRulesState,
+    settings: com.example.tb.ui.screens.setting.SettingsState,
     savingsBasedRecommendation: CoolingTimeOption,
     systemBasedRecommendation: CoolingTimeOption,
     selectedTime: CoolingTimeOption?,
@@ -311,6 +445,36 @@ fun CoolingTimeRecommendations(
 ) {
     val amountValue = amount.filter { it.isDigit() }.toDoubleOrNull() ?: 0.0
     val isAmountEntered = amountValue > 0
+
+    val savingsInfo = if (isAmountEntered) {
+        val monthlySavings = settings.getMonthlySavingsAsInt()?.toDouble() ?: 5000.0
+        val currentSavings = if (settings.considerSavings) {
+            settings.getCurrentSavingsAsInt()?.toDouble() ?: 0.0
+        } else {
+            0.0
+        }
+        val comfortableThreshold = 0.5
+        val comfortableAmount = currentSavings * comfortableThreshold
+        val canBuyNow = amountValue <= comfortableAmount
+        val neededAmount = if (!canBuyNow)
+            amountValue - comfortableAmount else 0.0
+        val monthsNeeded = if (!canBuyNow && monthlySavings > 0)
+            ceil(neededAmount / monthlySavings).toInt() else 0
+
+        SavingsInfo(
+            canBuyNow = canBuyNow,
+            neededAmount = neededAmount,
+            monthsNeeded = monthsNeeded,
+            comfortableAmount = comfortableAmount,
+            currentSavings = currentSavings,
+            monthlySavings = monthlySavings,
+            considerSavings = settings.considerSavings
+        )
+    } else null
+
+    val systemLimitInfo = if (isAmountEntered) {
+        getSystemLimitInfo(amountValue, coolingRules)
+    } else null
 
     Column(
         modifier = modifier
@@ -333,11 +497,22 @@ fun CoolingTimeRecommendations(
                 modifier = Modifier.padding(top = 4.dp)
             )
         } else {
+            // Если не настроены сбережения, показываем информационное сообщение
+            if (savingsInfo != null && !savingsInfo.considerSavings) {
+                Text(
+                    text = "ℹ️ В настройках отключен учёт текущих накоплений",
+                    color = Color(0xFFFFDD2D),
+                    fontSize = 10.sp,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+            }
+
             RecommendationCard(
                 recommendation = savingsBasedRecommendation,
                 isSelected = selectedTime == savingsBasedRecommendation,
                 onClick = { onTimeSelected(savingsBasedRecommendation) },
                 showSavingsInfo = true,
+                savingsInfo = savingsInfo,
                 amount = amountValue
             )
 
@@ -346,6 +521,7 @@ fun CoolingTimeRecommendations(
                 isSelected = selectedTime == systemBasedRecommendation,
                 onClick = { onTimeSelected(systemBasedRecommendation) },
                 showSavingsInfo = false,
+                systemLimitInfo = systemLimitInfo,
                 amount = amountValue
             )
 
@@ -353,9 +529,25 @@ fun CoolingTimeRecommendations(
                 text = selectedTime?.let {
                     when (it.type) {
                         RecommendationType.SAVINGS_BASED ->
-                            "Это время поможет накопить сумму без ущерба для бюджета"
+                            savingsInfo?.let { info ->
+                                if (!info.considerSavings || info.currentSavings <= 0) {
+                                    "Покупка по ежемесячным накоплениям: ${formatMoney(info.monthlySavings)}/мес."
+                                } else if (info.canBuyNow) {
+                                    "Можно купить сейчас! Сумма в пределах комфортного порога"
+                                } else {
+                                    "Нужно накопить ещё ${formatMoney(info.neededAmount)} за ${info.monthsNeeded} ${getMonthWord(info.monthsNeeded)}"
+                                }
+                            } ?: "Период накопления до комфортной покупки"
+
                         RecommendationType.SYSTEM_BASED ->
-                            "Время основано на ваших лимитах расходов из правил охлаждения"
+                            systemLimitInfo?.let { limitInfo ->
+                                if (limitInfo.exceedsAnyLimit) {
+                                    "Превышает ${limitInfo.limitType} лимит (${formatMoney(limitInfo.limitValue.toDouble())})"
+                                } else {
+                                    "Укладывается в ваши лимиты охлаждения"
+                                }
+                            } ?: "На основе ваших правил охлаждения"
+
                         else -> "Выбрано пользовательское время охлаждения"
                     }
                 } ?: "Выберите рекомендуемый период или укажите свой",
@@ -400,13 +592,17 @@ fun CoolingTimeRecommendations(
     }
 }
 
+// --- Компонент карточки рекомендации ---
+
 @Composable
 fun RecommendationCard(
     recommendation: CoolingTimeOption,
     isSelected: Boolean,
     onClick: () -> Unit,
     showSavingsInfo: Boolean,
-    amount: Double
+    amount: Double,
+    savingsInfo: SavingsInfo? = null,
+    systemLimitInfo: SystemLimitInfo? = null
 ) {
     Box(
         modifier = Modifier
@@ -461,25 +657,38 @@ fun RecommendationCard(
                 fontSize = 11.sp
             )
 
-            if (showSavingsInfo) {
-                Text(
-                    text = "Сумма ${formatMoney(amount)} составит ${calculateSavingsPercentage(amount)}% от ваших накоплений",
-                    color = if (isSelected) Color(0xFFDDDDDD) else Color(0xFF777777),
-                    fontSize = 10.sp,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
-            } else {
-                val limitType = when {
-                    amount < 15000 -> "дневного"
-                    amount < 50000 -> "недельного"
-                    else -> "месячного"
+            if (showSavingsInfo && savingsInfo != null) {
+                if (savingsInfo.canBuyNow) {
+                    Text(
+                        text = "Можно купить сейчас! Останется ${formatMoney(savingsInfo.comfortableAmount - amount)}",
+                        color = if (isSelected) Color(0xFFDDDDDD) else Color(0xFF777777),
+                        fontSize = 10.sp,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                } else {
+                    Text(
+                        text = "Нужно накопить ещё ${formatMoney(savingsInfo.neededAmount)} за ${savingsInfo.monthsNeeded} мес.",
+                        color = if (isSelected) Color(0xFFDDDDDD) else Color(0xFF777777),
+                        fontSize = 10.sp,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
                 }
-                Text(
-                    text = "Превышает $limitType лимита из ваших правил охлаждения",
-                    color = if (isSelected) Color(0xFFDDDDDD) else Color(0xFF777777),
-                    fontSize = 10.sp,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
+            } else if (!showSavingsInfo && systemLimitInfo != null) {
+                if (systemLimitInfo.exceedsAnyLimit) {
+                    Text(
+                        text = "Превышает ${systemLimitInfo.limitType} лимит на ${formatMoney(amount - systemLimitInfo.limitValue.toDouble())}",
+                        color = if (isSelected) Color(0xFFDDDDDD) else Color(0xFF777777),
+                        fontSize = 10.sp,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                } else {
+                    Text(
+                        text = "Укладывается во все установленные лимиты",
+                        color = if (isSelected) Color(0xFFDDDDDD) else Color(0xFF777777),
+                        fontSize = 10.sp,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
             }
         }
 
@@ -503,14 +712,39 @@ fun RecommendationCard(
     }
 }
 
+// --- Вспомогательные функции ---
+
 fun formatMoney(amount: Double): String {
     return "%,d ₽".format(amount.toInt()).replace(',', ' ')
 }
 
-fun calculateSavingsPercentage(amount: Double): Int {
-    val totalSavings = 100000.0
-    return ((amount / totalSavings) * 100).toInt().coerceAtLeast(1)
+fun getSystemLimitInfo(
+    amount: Double,
+    coolingRules: com.example.tb.ui.screens.cooling.CoolingRulesState
+): SystemLimitInfo {
+    val dayLimit = coolingRules.dayLimit.toIntOrNull() ?: 0
+    val weekMinLimit = coolingRules.weekMinLimit.toIntOrNull() ?: 0
+    val weekMaxLimit = coolingRules.weekMaxLimit.toIntOrNull() ?: 0
+    val monthLimit = coolingRules.monthLimit.toIntOrNull() ?: 0
+
+    return when {
+        monthLimit > 0 && amount > monthLimit ->
+            SystemLimitInfo(true, "месячный", monthLimit)
+
+        weekMaxLimit > 0 && amount > weekMaxLimit ->
+            SystemLimitInfo(true, "недельный максимальный", weekMaxLimit)
+
+        weekMinLimit > 0 && amount > weekMinLimit ->
+            SystemLimitInfo(true, "недельный минимальный", weekMinLimit)
+
+        dayLimit > 0 && amount > dayLimit ->
+            SystemLimitInfo(true, "дневной", dayLimit)
+
+        else -> SystemLimitInfo(false, "", 0)
+    }
 }
+
+// --- Компоненты полей ввода (из вашего оригинального файла) ---
 
 @Composable
 fun SimpleTextField(

@@ -5,13 +5,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.lifecycle.viewmodel.compose.viewModel
-
 import com.example.tb.ui.navigation.Screen
 import com.example.tb.ui.screens.home.HomeScreen
 import com.example.tb.ui.screens.setting.SettingsMainScreen
@@ -22,13 +23,24 @@ import com.example.tb.ui.screens.finance.FinanceScreen
 import com.example.tb.ui.screens.blacklist.BlackListScreen
 import com.example.tb.ui.screens.blacklist.AddCategoryScreen
 import com.example.tb.ui.screens.buyers.PurchaseViewModel
+import com.example.tb.ui.screens.cooling.CoolingRulesViewModel
+import com.example.tb.ui.screens.setting.SettingsViewModel
 
 @Composable
 fun MainScreen() {
     val navController = rememberNavController()
+    val context = LocalContext.current
 
-    // Общий ViewModel для списка и экрана добавления
+    // Получаем все ViewModel
     val purchaseViewModel: PurchaseViewModel = viewModel()
+    val coolingRulesViewModel: CoolingRulesViewModel = viewModel()
+    val settingsViewModel: SettingsViewModel = viewModel()
+
+    // Загружаем данные при инициализации
+    LaunchedEffect(Unit) {
+        coolingRulesViewModel.loadRules(context)
+        settingsViewModel.loadSettings(context)
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -40,6 +52,7 @@ fun MainScreen() {
             modifier = Modifier.padding(0.dp)
         ) {
 
+            // Главный экран
             composable(Screen.Home.route) {
                 HomeScreen(
                     onSettingsClick = {
@@ -57,6 +70,7 @@ fun MainScreen() {
                 )
             }
 
+            // Черный список
             composable(Screen.Blacklist.route) {
                 BlackListScreen(
                     onBackClick = { navController.navigateUp() },
@@ -66,6 +80,7 @@ fun MainScreen() {
                 )
             }
 
+            // Добавление категории
             composable(Screen.AddCategory.route) {
                 AddCategoryScreen(
                     onBackClick = { navController.navigateUp() },
@@ -75,13 +90,14 @@ fun MainScreen() {
                 )
             }
 
+            // Финансы
             composable(Screen.Finance.route) {
                 FinanceScreen(
                     onBackClick = { navController.navigateUp() }
                 )
             }
 
-            // Экран списка покупок
+            // Список покупок
             composable(Screen.Purchases.route) {
                 PurchaseScreen(
                     viewModel = purchaseViewModel,
@@ -92,25 +108,35 @@ fun MainScreen() {
                 )
             }
 
-            // Экран добавления покупки
+            // Добавление покупки (с расчетом охлаждения)
             composable(Screen.AddPurchase.route) {
                 AddPurchaseScreen(
-                    viewModel = purchaseViewModel,
-                    onBackClick = { navController.navigateUp() }
-                )
-            }
-
-            composable(Screen.Settings.route) {
-                SettingsMainScreen(
+                    purchaseViewModel = purchaseViewModel,
+                    coolingRulesViewModel = coolingRulesViewModel,
+                    settingsViewModel = settingsViewModel,
                     onBackClick = { navController.navigateUp() },
-                    onCoolingRulesClick = {
-                        navController.navigate(Screen.CoolingRules.route)
+                    onAddClick = {
+                        navController.navigateUp()
                     }
                 )
             }
 
+            // Настройки
+            composable(Screen.Settings.route) {
+                SettingsMainScreen(
+                    settingsViewModel = settingsViewModel,
+                    onBackClick = { navController.navigateUp() },
+                    onCoolingRulesClick = {
+                        navController.navigate(Screen.CoolingRules.route)
+                    },
+                    onSaveSuccess = {}
+                )
+            }
+
+            // Правила охлаждения
             composable(Screen.CoolingRules.route) {
                 CoolingRulesScreen(
+                    coolingRulesViewModel = coolingRulesViewModel,
                     onBackClick = { navController.navigateUp() }
                 )
             }

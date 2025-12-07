@@ -28,9 +28,9 @@ import com.example.tb.R
 
 @Composable
 fun PurchaseScreen(
-    viewModel: PurchaseViewModel = viewModel(),   // ✅ добавлен дефолт
-    onBackClick: () -> Unit = {},
-    onAddPurchaseClick: () -> Unit = {}
+    viewModel: PurchaseViewModel,
+    onBackClick: () -> Unit,
+    onAddPurchaseClick: () -> Unit
 ) {
     var selectedTab by remember { mutableIntStateOf(0) } // 0 - Покупки, 1 - История
     val state by viewModel.state.collectAsState()
@@ -785,7 +785,7 @@ fun CompletePurchaseDialog(
                 )
 
                 Text(
-                    text = "Эта сумма вычтется из твоих накоплений",
+                    text = "Эта сумма вычтется из твоих накопления",
                     color = Color(0xFFAAAAAA),
                     fontSize = 12.sp,
                     modifier = Modifier.padding(bottom = 20.dp)
@@ -843,5 +843,10 @@ fun CompletePurchaseDialog(
 @Preview(showBackground = true)
 @Composable
 fun PurchaseScreenPreview() {
-    PurchaseScreen()   // ✅ теперь viewModel берётся по умолчанию
+    val viewModel: PurchaseViewModel = viewModel()
+    PurchaseScreen(
+        viewModel = viewModel,
+        onBackClick = {},
+        onAddPurchaseClick = {}
+    )
 }

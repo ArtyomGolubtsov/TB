@@ -25,7 +25,10 @@ data class Purchase(
     val dateAdded: Long = System.currentTimeMillis(),
     val status: PurchaseStatus = PurchaseStatus.ACTIVE,
     val notificationsEnabled: Boolean = true,
-    val cancelledAmount: Double = 0.0 // Сумма, которая накоплена при отмене
+    val cancelledAmount: Double = 0.0, // Сумма, которая накоплена при отмене
+    val coolingDays: Int = 0,          // Время охлаждения в днях
+    val coolingStartDate: Long = System.currentTimeMillis(), // Дата начала охлаждения
+    val isCoolingActive: Boolean = true // Активно ли охлаждение
 )
 
 data class PurchaseState(
@@ -49,27 +52,32 @@ class PurchaseViewModel : ViewModel() {
                 Purchase(
                     title = "iPhone 15 Pro",
                     category = "Техника",
-                    amount = 120000.0
+                    amount = 120000.0,
+                    coolingDays = 30
                 ),
                 Purchase(
                     title = "iPhone 15 Pro",
                     category = "Техника",
-                    amount = 120000.0
+                    amount = 120000.0,
+                    coolingDays = 14
                 ),
                 Purchase(
                     title = "iPhone 15 Pro",
                     category = "Техника",
-                    amount = 120000.0
+                    amount = 120000.0,
+                    coolingDays = 7
                 ),
                 Purchase(
                     title = "Кроссовки Nike",
                     category = "Одежда",
-                    amount = 8000.0
+                    amount = 8000.0,
+                    coolingDays = 7
                 ),
                 Purchase(
                     title = "Путешествие в Турцию",
                     category = "Отдых",
-                    amount = 50000.0
+                    amount = 50000.0,
+                    coolingDays = 60
                 )
             )
 
@@ -83,13 +91,22 @@ class PurchaseViewModel : ViewModel() {
         }
     }
 
-    fun addPurchase(title: String, category: String, amount: Double, link: String = "") {
+    fun addPurchase(
+        title: String,
+        category: String,
+        amount: Double,
+        link: String = "",
+        coolingDays: Int = 0
+    ) {
         viewModelScope.launch {
             val newPurchase = Purchase(
                 title = title,
                 category = category,
                 amount = amount,
-                link = link
+                link = link,
+                coolingDays = coolingDays,
+                coolingStartDate = System.currentTimeMillis(),
+                isCoolingActive = coolingDays > 0
             )
 
             _state.update { currentState ->
@@ -101,22 +118,58 @@ class PurchaseViewModel : ViewModel() {
         }
     }
 
+    // Получить оставшееся время охлаждения в днях
+    fun getRemainingCoolingDays(purchase: Purchase): Int {
+        if (!purchase.isCoolingActive || purchase.coolingDays <= 0) {
+            return 0
+        }
+
+        val currentTime = System.currentTimeMillis()
+        val elapsedDays = ((currentTime - purchase.coolingStartDate) / (1000 * 60 * 60 * 24)).toInt()
+        val remainingDays = purchase.coolingDays - elapsedDays
+
+        return remainingDays.coerceAtLeast(0)
+    }
+
+    // Проверить, закончилось ли время охлаждения
+    fun isCoolingPeriodOver(purchase: Purchase): Boolean {
+        return getRemainingCoolingDays(purchase) <= 0
+    }
+
+    // Получить прогресс охлаждения в процентах (0-100)
+    fun getCoolingProgress(purchase: Purchase): Float {
+        if (purchase.coolingDays <= 0) return 100f
+
+        val remainingDays = getRemainingCoolingDays(purchase)
+        val progress = 100f * (purchase.coolingDays - remainingDays) / purchase.coolingDays
+
+        return progress.coerceIn(0f, 100f)
+    }
+
     fun completePurchase(purchaseId: String) {
         viewModelScope.launch {
             _state.update { currentState ->
                 val purchase = currentState.activePurchases.find { it.id == purchaseId }
                 if (purchase != null) {
-                    val updatedPurchase = purchase.copy(status = PurchaseStatus.COMPLETED)
-                    val totalSpent = currentState.totalSpent + purchase.amount
+                    // Проверяем, закончился ли период охлаждения
+                    val canComplete = !purchase.isCoolingActive || isCoolingPeriodOver(purchase)
 
-                    currentState.copy(
-                        activePurchases = currentState.activePurchases.filter { it.id != purchaseId },
-                        completedPurchases = currentState.completedPurchases + updatedPurchase,
-                        allPurchases = currentState.allPurchases.map {
-                            if (it.id == purchaseId) updatedPurchase else it
-                        },
-                        totalSpent = totalSpent
-                    )
+                    if (canComplete) {
+                        val updatedPurchase = purchase.copy(status = PurchaseStatus.COMPLETED)
+                        val totalSpent = currentState.totalSpent + purchase.amount
+
+                        currentState.copy(
+                            activePurchases = currentState.activePurchases.filter { it.id != purchaseId },
+                            completedPurchases = currentState.completedPurchases + updatedPurchase,
+                            allPurchases = currentState.allPurchases.map {
+                                if (it.id == purchaseId) updatedPurchase else it
+                            },
+                            totalSpent = totalSpent
+                        )
+                    } else {
+                        // Если период охлаждения еще не закончился, покупка остается активной
+                        currentState
+                    }
                 } else {
                     currentState
                 }
@@ -178,13 +231,59 @@ class PurchaseViewModel : ViewModel() {
         }
     }
 
+    // Приостановить/возобновить охлаждение
+    fun toggleCooling(purchaseId: String) {
+        viewModelScope.launch {
+            _state.update { currentState ->
+                val updatedAllPurchases = currentState.allPurchases.map { purchase ->
+                    if (purchase.id == purchaseId) {
+                        val newIsCoolingActive = !purchase.isCoolingActive
+                        val newCoolingStartDate = if (newIsCoolingActive) {
+                            System.currentTimeMillis()
+                        } else {
+                            purchase.coolingStartDate
+                        }
+                        purchase.copy(
+                            isCoolingActive = newIsCoolingActive,
+                            coolingStartDate = newCoolingStartDate
+                        )
+                    } else {
+                        purchase
+                    }
+                }
+
+                val updatedActivePurchases = currentState.activePurchases.map { purchase ->
+                    if (purchase.id == purchaseId) {
+                        val newIsCoolingActive = !purchase.isCoolingActive
+                        val newCoolingStartDate = if (newIsCoolingActive) {
+                            System.currentTimeMillis()
+                        } else {
+                            purchase.coolingStartDate
+                        }
+                        purchase.copy(
+                            isCoolingActive = newIsCoolingActive,
+                            coolingStartDate = newCoolingStartDate
+                        )
+                    } else {
+                        purchase
+                    }
+                }
+
+                currentState.copy(
+                    activePurchases = updatedActivePurchases,
+                    allPurchases = updatedAllPurchases
+                )
+            }
+        }
+    }
+
     fun formatAmount(amount: Double): String {
         return "%,d ₽".format(amount.toInt()).replace(',', ' ')
     }
 
+    // Для обратной совместимости - оставляем старую функцию
     fun getProgressValue(purchase: Purchase): Float {
-        // Сейчас заглушка, потом можно подвязать к реальному прогрессу
-        return Random.nextFloat() * 100f
+        return getCoolingProgress(purchase)
     }
 
     fun getPurchaseById(purchaseId: String): Purchase? {
@@ -199,4 +298,31 @@ class PurchaseViewModel : ViewModel() {
     fun getTotalSaved(): Double = _state.value.totalSaved
 
     fun getTotalSpent(): Double = _state.value.totalSpent
+
+    // Фильтрация покупок по статусу охлаждения
+    fun getPurchasesWithActiveCooling(): List<Purchase> {
+        return _state.value.activePurchases.filter { it.isCoolingActive && it.coolingDays > 0 }
+    }
+
+    fun getPurchasesWithExpiredCooling(): List<Purchase> {
+        return _state.value.activePurchases.filter { purchase ->
+            purchase.isCoolingActive && isCoolingPeriodOver(purchase)
+        }
+    }
+
+    // Получить статистику по охлаждению
+    fun getCoolingStatistics(): Map<String, Int> {
+        val activePurchases = _state.value.activePurchases
+        return mapOf(
+            "totalWithCooling" to activePurchases.count { it.coolingDays > 0 },
+            "activeCooling" to activePurchases.count { it.isCoolingActive && it.coolingDays > 0 },
+            "expiredCooling" to getPurchasesWithExpiredCooling().size,
+            "avgCoolingDays" to if (activePurchases.isNotEmpty()) {
+                activePurchases.filter { it.coolingDays > 0 }
+                    .map { it.coolingDays }
+                    .average()
+                    .toInt()
+            } else 0
+        )
+    }
 }

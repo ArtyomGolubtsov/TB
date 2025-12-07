@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -50,21 +51,21 @@ import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.tb.R
 import com.example.tb.ui.theme.TBTheme
-import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun SettingsMainScreen(
+    settingsViewModel: SettingsViewModel,
     onBackClick: () -> Unit = {},
     onCoolingRulesClick: () -> Unit = {},
     onSaveSuccess: () -> Unit = {}
 ) {
-    val viewModel: SettingsViewModel = viewModel()
-    val state by viewModel.state.collectAsState()
-    val context = androidx.compose.ui.platform.LocalContext.current
+    // ИСПОЛЬЗУЕМ переданный settingsViewModel
+    val state by settingsViewModel.state.collectAsState()
+    val context = LocalContext.current
 
     // Загрузка настроек при первом запуске экрана
     LaunchedEffect(Unit) {
-        viewModel.loadSettings(context)
+        settingsViewModel.loadSettings(context)
     }
 
     var showFrequencyDialog by remember { mutableStateOf(false) }
@@ -127,16 +128,16 @@ fun SettingsMainScreen(
             FinanceSection(
                 monthlySavings = state.monthlySavings,
                 income = state.income,
-                onMonthlySavingsChange = { viewModel.updateMonthlySavings(it) },
-                onIncomeChange = { viewModel.updateIncome(it) }
+                onMonthlySavingsChange = { settingsViewModel.updateMonthlySavings(it) },
+                onIncomeChange = { settingsViewModel.updateIncome(it) }
             )
 
             // Блок Накопления
             SavingsSection(
                 considerSavings = state.considerSavings,
                 currentSavings = state.currentSavings,
-                onConsiderSavingsChange = { viewModel.updateConsiderSavings(it) },
-                onCurrentSavingsChange = { viewModel.updateCurrentSavings(it) }
+                onConsiderSavingsChange = { settingsViewModel.updateConsiderSavings(it) },
+                onCurrentSavingsChange = { settingsViewModel.updateCurrentSavings(it) }
             )
 
             // Блок Правила охлаждения
@@ -208,7 +209,7 @@ fun SettingsMainScreen(
                 .clip(RoundedCornerShape(15.dp))
                 .background(Color(0xFFFFDD2D))
                 .clickable {
-                    viewModel.saveSettings(
+                    settingsViewModel.saveSettings(
                         context = context,
                         onSuccess = { onSaveSuccess() },
                         onError = { error ->
@@ -236,7 +237,7 @@ fun SettingsMainScreen(
             selectedFrequency = state.notificationFrequency,
             onDismiss = { showFrequencyDialog = false },
             onSelect = { frequency ->
-                viewModel.updateNotificationFrequency(frequency)
+                settingsViewModel.updateNotificationFrequency(frequency)
                 showFrequencyDialog = false
             }
         )
@@ -248,7 +249,7 @@ fun SettingsMainScreen(
             selectedChannel = state.notificationChannel,
             onDismiss = { showChannelDialog = false },
             onSelect = { channel ->
-                viewModel.updateNotificationChannel(channel)
+                settingsViewModel.updateNotificationChannel(channel)
                 showChannelDialog = false
             }
         )
@@ -755,6 +756,12 @@ fun ErrorDialog(
 @Composable
 fun SettingsMainScreenPreview() {
     TBTheme {
-        SettingsMainScreen()
+        val settingsViewModel: SettingsViewModel = viewModel()
+        SettingsMainScreen(
+            settingsViewModel = settingsViewModel,
+            onBackClick = {},
+            onCoolingRulesClick = {},
+            onSaveSuccess = {}
+        )
     }
 }
