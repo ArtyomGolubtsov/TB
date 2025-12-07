@@ -47,3 +47,4 @@ val allScreens = listOf(
     Screen.Blacklist,      // ← ДОБАВЬТЕ
     Screen.AddCategory     // ← ДОБАВЬТЕ
 )
+

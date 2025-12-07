@@ -1,5 +1,6 @@
 package com.example.tb.ui.screens.setting
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -7,7 +8,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
 
 data class SettingsState(
     val notificationFrequency: NotificationFrequency = NotificationFrequency.DAILY,
@@ -18,25 +18,15 @@ data class SettingsState(
     val currentSavings: String = ""
 ) {
     fun isValid(): Boolean {
-        // Проверяем только что поля не пустые
         val monthlySavingsValid = monthlySavings.isNotBlank()
         val incomeValid = income.isNotBlank()
         val currentSavingsValid = !considerSavings || currentSavings.isNotBlank()
-
         return monthlySavingsValid && incomeValid && currentSavingsValid
     }
 
-    fun getMonthlySavingsAsInt(): Int? {
-        return monthlySavings.toIntOrNull()
-    }
-
-    fun getIncomeAsInt(): Int? {
-        return income.toIntOrNull()
-    }
-
-    fun getCurrentSavingsAsInt(): Int? {
-        return currentSavings.toIntOrNull()
-    }
+    fun getMonthlySavingsAsInt(): Int? = monthlySavings.toIntOrNull()
+    fun getIncomeAsInt(): Int? = income.toIntOrNull()
+    fun getCurrentSavingsAsInt(): Int? = currentSavings.toIntOrNull()
 }
 
 enum class NotificationFrequency(val displayName: String) {
@@ -66,13 +56,11 @@ class SettingsViewModel : ViewModel() {
     }
 
     fun updateMonthlySavings(value: String) {
-        // Убираем только лишние пробелы и разрешаем все символы
         val cleanedValue = value.trim()
         _state.update { it.copy(monthlySavings = cleanedValue) }
     }
 
     fun updateIncome(value: String) {
-        // Убираем только лишние пробелы и разрешаем все символы
         val cleanedValue = value.trim()
         _state.update { it.copy(income = cleanedValue) }
     }
@@ -82,16 +70,55 @@ class SettingsViewModel : ViewModel() {
     }
 
     fun updateCurrentSavings(value: String) {
-        // Убираем только лишние пробелы и разрешаем все символы
         val cleanedValue = value.trim()
         _state.update { it.copy(currentSavings = cleanedValue) }
     }
 
-    fun saveSettings(onSuccess: () -> Unit, onError: (String) -> Unit = {}) {
+    /**
+     * Загрузка настроек из SharedPreferences.
+     * Вызывать один раз при открытии экрана.
+     */
+    fun loadSettings(context: Context) {
+        val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+
+        val monthlySavings = prefs.getInt("monthly_savings", -1)
+        val income = prefs.getInt("income", -1)
+        val considerSavings = prefs.getBoolean("consider_savings", true)
+        val currentSavings = prefs.getInt("current_savings", -1)
+
+        val freqName = prefs.getString("notification_frequency", null)
+        val channelName = prefs.getString("notification_channel", null)
+
+        val frequency = freqName?.let {
+            runCatching { NotificationFrequency.valueOf(it) }.getOrNull()
+        } ?: NotificationFrequency.DAILY
+
+        val channel = channelName?.let {
+            runCatching { NotificationChannel.valueOf(it) }.getOrNull()
+        } ?: NotificationChannel.PUSH
+
+        _state.update { old ->
+            old.copy(
+                monthlySavings = if (monthlySavings >= 0) monthlySavings.toString() else "",
+                income = if (income >= 0) income.toString() else "",
+                considerSavings = considerSavings,
+                currentSavings = if (currentSavings >= 0) currentSavings.toString() else "",
+                notificationFrequency = frequency,
+                notificationChannel = channel
+            )
+        }
+    }
+
+    /**
+     * Сохраняем настройки в SharedPreferences.
+     */
+    fun saveSettings(
+        context: Context,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit = {}
+    ) {
         viewModelScope.launch {
             val currentState = state.value
-
-            // Проверяем валидность полей
             val errors = mutableListOf<String>()
 
             if (currentState.monthlySavings.isEmpty()) {
@@ -112,25 +139,27 @@ class SettingsViewModel : ViewModel() {
                 errors.add("Некорректная сумма текущих накоплений. Используйте только цифры")
             }
 
-            if (errors.isEmpty()) {
-                // Здесь можно сохранить в SharedPreferences или в базу данных
-                saveToPreferences(
-                    monthlySavings = currentState.getMonthlySavingsAsInt() ?: 0,
-                    income = currentState.getIncomeAsInt() ?: 0,
-                    considerSavings = currentState.considerSavings,
-                    currentSavings = currentState.getCurrentSavingsAsInt() ?: 0,
-                    notificationFrequency = currentState.notificationFrequency,
-                    notificationChannel = currentState.notificationChannel
-                )
-
-                onSuccess()
-            } else {
+            if (errors.isNotEmpty()) {
                 onError(errors.joinToString("\n"))
+                return@launch
             }
+
+            saveToPreferences(
+                context = context,
+                monthlySavings = currentState.getMonthlySavingsAsInt() ?: 0,
+                income = currentState.getIncomeAsInt() ?: 0,
+                considerSavings = currentState.considerSavings,
+                currentSavings = currentState.getCurrentSavingsAsInt() ?: 0,
+                notificationFrequency = currentState.notificationFrequency,
+                notificationChannel = currentState.notificationChannel
+            )
+
+            onSuccess()
         }
     }
 
     private fun saveToPreferences(
+        context: Context,
         monthlySavings: Int,
         income: Int,
         considerSavings: Boolean,
@@ -138,11 +167,8 @@ class SettingsViewModel : ViewModel() {
         notificationFrequency: NotificationFrequency,
         notificationChannel: NotificationChannel
     ) {
-        // TODO: Реализовать сохранение в SharedPreferences
-        // Пример:
-        /*
-        val sharedPref = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-        with(sharedPref.edit()) {
+        val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        with(prefs.edit()) {
             putInt("monthly_savings", monthlySavings)
             putInt("income", income)
             putBoolean("consider_savings", considerSavings)
@@ -151,6 +177,5 @@ class SettingsViewModel : ViewModel() {
             putString("notification_channel", notificationChannel.name)
             apply()
         }
-        */
     }
 }

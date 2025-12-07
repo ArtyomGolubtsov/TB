@@ -18,22 +18,31 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.tb.R
 
 @Composable
 fun CoolingRulesScreen(
     onBackClick: () -> Unit = {}
 ) {
-    var dayLimit by remember { mutableStateOf("15000") }
-    var weekMinLimit by remember { mutableStateOf("15000") }
-    var weekMaxLimit by remember { mutableStateOf("50000") }
-    var monthLimit by remember { mutableStateOf("50000") }
+    val viewModel: CoolingRulesViewModel = viewModel()
+    val state by viewModel.state.collectAsState()
+    val context = LocalContext.current
+
+    var showErrorDialog by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+
+    // Загружаем сохранённые правила один раз
+    LaunchedEffect(Unit) {
+        viewModel.loadRules(context)
+    }
 
     Box(
         modifier = Modifier
@@ -97,8 +106,8 @@ fun CoolingRulesScreen(
                     lineHeight = 18.sp,
                 )
                 CoolingInputField(
-                    value = dayLimit,
-                    onValueChange = { dayLimit = it },
+                    value = state.dayLimit,
+                    onValueChange = { viewModel.updateDayLimit(it) },
                     prefix = "до",
                     suffix = "₽"
                 )
@@ -120,8 +129,8 @@ fun CoolingRulesScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     CoolingInputField(
-                        value = weekMinLimit,
-                        onValueChange = { weekMinLimit = it },
+                        value = state.weekMinLimit,
+                        onValueChange = { viewModel.updateWeekMinLimit(it) },
                         prefix = "от",
                         modifier = Modifier.weight(1f)
                     )
@@ -133,8 +142,8 @@ fun CoolingRulesScreen(
                         modifier = Modifier.align(Alignment.CenterVertically)
                     )
                     CoolingInputField(
-                        value = weekMaxLimit,
-                        onValueChange = { weekMaxLimit = it },
+                        value = state.weekMaxLimit,
+                        onValueChange = { viewModel.updateWeekMaxLimit(it) },
                         suffix = "₽",
                         modifier = Modifier.weight(1f)
                     )
@@ -153,8 +162,8 @@ fun CoolingRulesScreen(
                     lineHeight = 18.sp,
                 )
                 CoolingInputField(
-                    value = monthLimit,
-                    onValueChange = { monthLimit = it },
+                    value = state.monthLimit,
+                    onValueChange = { viewModel.updateMonthLimit(it) },
                     prefix = "от",
                     suffix = "₽"
                 )
@@ -171,8 +180,16 @@ fun CoolingRulesScreen(
                 .clip(RoundedCornerShape(15.dp))
                 .background(Color(0xFFFFDD2D))
                 .clickable {
-                    // TODO: Сохранить настройки
-                    onBackClick()
+                    viewModel.saveRules(
+                        context = context,
+                        onSuccess = {
+                            onBackClick()
+                        },
+                        onError = { error ->
+                            errorMessage = error
+                            showErrorDialog = true
+                        }
+                    )
                 },
             contentAlignment = Alignment.Center
         ) {
@@ -183,6 +200,51 @@ fun CoolingRulesScreen(
                 fontWeight = FontWeight.Normal,
                 lineHeight = 24.sp
             )
+        }
+    }
+
+    // Простейший диалог ошибки (если хочешь — можно вынести в отдельный Composable)
+    if (showErrorDialog) {
+        androidx.compose.ui.window.Dialog(onDismissRequest = { showErrorDialog = false }) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFF333333))
+                    .padding(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Ошибка",
+                        color = Color(0xFFEE6B42),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = errorMessage,
+                        color = Color.White,
+                        fontSize = 14.sp
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(40.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFF2A64D9))
+                            .clickable { showErrorDialog = false },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "OK",
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -250,7 +312,6 @@ fun CoolingInputField(
                         }
                     },
                     onValueChange = { newValue ->
-                        // Разрешаем только цифры
                         val filtered = newValue.filter { it.isDigit() }
                         displayText = filtered
                         onValueChange(filtered)
@@ -261,7 +322,6 @@ fun CoolingInputField(
                         .onFocusChanged { focusState ->
                             isFocused = focusState.isFocused
                             if (!focusState.isFocused) {
-                                // При потере фокуса сохраняем только цифры
                                 val cleaned = displayText.filter { it.isDigit() }
                                 displayText = cleaned
                             }

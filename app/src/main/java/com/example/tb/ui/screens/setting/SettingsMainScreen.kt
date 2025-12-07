@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,7 +40,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -50,6 +50,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.tb.R
 import com.example.tb.ui.theme.TBTheme
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun SettingsMainScreen(
@@ -59,7 +60,12 @@ fun SettingsMainScreen(
 ) {
     val viewModel: SettingsViewModel = viewModel()
     val state by viewModel.state.collectAsState()
-    val context = LocalContext.current
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    // Загрузка настроек при первом запуске экрана
+    LaunchedEffect(Unit) {
+        viewModel.loadSettings(context)
+    }
 
     var showFrequencyDialog by remember { mutableStateOf(false) }
     var showChannelDialog by remember { mutableStateOf(false) }
@@ -71,6 +77,7 @@ fun SettingsMainScreen(
             .fillMaxSize()
             .background(Color.Black)
     ) {
+        // Кнопка "назад"
         Box(
             modifier = Modifier
                 .size(24.dp)
@@ -88,6 +95,7 @@ fun SettingsMainScreen(
             )
         }
 
+        // Заголовок
         Text(
             text = "Настройки",
             color = Color.White,
@@ -99,6 +107,7 @@ fun SettingsMainScreen(
                 .padding(top = 41.dp)
         )
 
+        // Основной контент
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -200,9 +209,8 @@ fun SettingsMainScreen(
                 .background(Color(0xFFFFDD2D))
                 .clickable {
                     viewModel.saveSettings(
-                        onSuccess = {
-                            onSaveSuccess()
-                        },
+                        context = context,
+                        onSuccess = { onSaveSuccess() },
                         onError = { error ->
                             errorMessage = error
                             showErrorDialog = true
@@ -219,6 +227,7 @@ fun SettingsMainScreen(
                 lineHeight = 24.sp
             )
         }
+
     }
 
     // Диалог выбора частоты уведомлений
@@ -254,7 +263,8 @@ fun SettingsMainScreen(
     }
 }
 
-// ========== NotificationSection ==========
+// ================= NotificationSection =================
+
 @Composable
 fun NotificationSection(
     notificationFrequency: NotificationFrequency,
@@ -351,7 +361,8 @@ fun NotificationItem(
     }
 }
 
-// ========== FinanceSection ==========
+// ================= FinanceSection =================
+
 @Composable
 fun FinanceSection(
     monthlySavings: String,
@@ -395,7 +406,8 @@ fun FinanceSection(
     }
 }
 
-// ========== FinanceInputField ==========
+// ================= FinanceInputField =================
+
 @Composable
 fun FinanceInputField(
     label: String,
@@ -409,7 +421,7 @@ fun FinanceInputField(
     var isFocused by remember { mutableStateOf(false) }
     var displayText by remember { mutableStateOf(value) }
 
-    // Синхронизируем с внешним значением
+    // синхронизация с внешним стейтом
     LaunchedEffect(value) {
         if (displayText != value) {
             displayText = value
@@ -443,12 +455,11 @@ fun FinanceInputField(
                     shape = RoundedCornerShape(25.dp)
                 )
         ) {
-            androidx.compose.foundation.text.BasicTextField(
+            BasicTextField(
                 value = if (isFocused || !isNumericOnly) {
-                    // В режиме редактирования или для нечисловых полей - показываем как есть
                     displayText
                 } else {
-                    // Для числовых полей вне фокуса - форматируем
+                    // форматирование для чисел вне фокуса
                     val cleaned = displayText.filter { it.isDigit() }
                     val number = cleaned.toLongOrNull()
                     if (number != null) {
@@ -459,12 +470,10 @@ fun FinanceInputField(
                 },
                 onValueChange = { newValue ->
                     if (isNumericOnly) {
-                        // Для числовых полей - только цифры
                         val filtered = newValue.filter { it.isDigit() }
                         displayText = filtered
                         onValueChange(filtered)
                     } else {
-                        // Для нечисловых полей - все символы
                         displayText = newValue
                         onValueChange(newValue)
                     }
@@ -476,7 +485,6 @@ fun FinanceInputField(
                     .onFocusChanged { focusState ->
                         isFocused = focusState.isFocused
                         if (!focusState.isFocused && isNumericOnly) {
-                            // При потере фокуса для числовых полей - сохраняем только цифры
                             val cleaned = displayText.filter { it.isDigit() }
                             displayText = cleaned
                         }
@@ -509,7 +517,8 @@ fun FinanceInputField(
     }
 }
 
-// ========== SavingsSection ==========
+// ================= SavingsSection =================
+
 @Composable
 fun SavingsSection(
     considerSavings: Boolean,
@@ -568,7 +577,8 @@ fun SavingsSection(
     }
 }
 
-// ========== CustomSwitch ==========
+// ================= CustomSwitch =================
+
 @Composable
 fun CustomSwitch(
     isChecked: Boolean,
@@ -588,12 +598,12 @@ fun CustomSwitch(
                 .size(12.dp)
                 .clip(CircleShape)
                 .background(Color.White)
-                .padding(2.dp)
         )
     }
 }
 
-// ========== NotificationFrequencyDialog ==========
+// ================= Диалоги =================
+
 @Composable
 fun NotificationFrequencyDialog(
     selectedFrequency: NotificationFrequency,
@@ -642,7 +652,6 @@ fun NotificationFrequencyDialog(
     }
 }
 
-// ========== NotificationChannelDialog ==========
 @Composable
 fun NotificationChannelDialog(
     selectedChannel: NotificationChannel,
@@ -691,7 +700,6 @@ fun NotificationChannelDialog(
     }
 }
 
-// ========== ErrorDialog ==========
 @Composable
 fun ErrorDialog(
     message: String,
@@ -740,6 +748,8 @@ fun ErrorDialog(
         }
     }
 }
+
+// ================= Preview =================
 
 @Preview(showBackground = true)
 @Composable

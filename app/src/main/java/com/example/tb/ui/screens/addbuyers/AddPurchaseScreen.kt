@@ -25,14 +25,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.tb.R
 import com.example.tb.ui.screens.buyers.PurchaseViewModel
 
 @Composable
 fun AddPurchaseScreen(
+    viewModel: PurchaseViewModel,          // ← ПРИНИМАЕМ ViewModel СЮДА
     onBackClick: () -> Unit = {},
-    onAddClick: () -> Unit = {}
+    onAddClick: () -> Unit = {}           // можно использовать для доп. действий снаружи
 ) {
     var link by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
@@ -40,8 +40,7 @@ fun AddPurchaseScreen(
     var amount by remember { mutableStateOf("") }
     var selectedCoolingTime by remember { mutableStateOf<CoolingTimeOption?>(null) }
 
-    // Получаем ViewModel
-    val viewModel: PurchaseViewModel = viewModel()
+    // УБРАЛО: val viewModel: PurchaseViewModel = viewModel()
 
     // Расчет рекомендованных времен на основе суммы
     val (savingsBasedRecommendation, systemBasedRecommendation) = calculateRecommendations(amount)
@@ -51,14 +50,6 @@ fun AddPurchaseScreen(
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        // Status Bar фон
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(24.dp)
-                .background(Color.Black)
-        )
-
         // Стрелка назад
         Box(
             modifier = Modifier
@@ -218,10 +209,11 @@ fun AddPurchaseScreen(
                             link = link
                         )
 
-                        // Сохраняем выбранное время охлаждения
+                        // Сохраняем выбранное время охлаждения (пока просто лог)
                         println("Время охлаждения: ${selectedCoolingTime?.name}, дней: $coolingDays")
 
-                        onAddClick() // Возвращаемся назад
+                        onAddClick() // если снаружи что-то хотят сделать
+                        onBackClick() // возвращаемся назад к списку
                     } catch (e: NumberFormatException) {
                         // Обработка ошибки преобразования
                     }
@@ -254,7 +246,8 @@ fun AddPurchaseScreen(
     }
 }
 
-// Модель для опций времени охлаждения
+// --- Модель и вспомогательные сущности ---
+
 data class CoolingTimeOption(
     val id: Int,
     val name: String,
@@ -274,7 +267,6 @@ enum class RecommendationType {
 fun calculateRecommendations(amount: String): Pair<CoolingTimeOption, CoolingTimeOption> {
     val amountValue = amount.filter { it.isDigit() }.toDoubleOrNull() ?: 0.0
 
-    // Рекомендация на основе накоплений (чем больше сумма относительно накоплений, тем дольше)
     val savingsBasedDays = when {
         amountValue < 5000 -> 7
         amountValue < 20000 -> 14
@@ -283,11 +275,10 @@ fun calculateRecommendations(amount: String): Pair<CoolingTimeOption, CoolingTim
         else -> 90
     }
 
-    // Рекомендация на основе системных правил (превышение лимитов)
     val systemBasedDays = when {
-        amountValue < 15000 -> 7  // До дневного лимита
-        amountValue < 50000 -> 14 // До недельного лимита
-        else -> 30                // Превышает месячный лимит
+        amountValue < 15000 -> 7
+        amountValue < 50000 -> 14
+        else -> 30
     }
 
     val savingsOption = CoolingTimeOption(
@@ -327,7 +318,6 @@ fun CoolingTimeRecommendations(
             .padding(horizontal = 40.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Заголовок
         Text(
             text = "Рекомендованные периоды охлаждения:",
             color = Color.White,
@@ -343,7 +333,6 @@ fun CoolingTimeRecommendations(
                 modifier = Modifier.padding(top = 4.dp)
             )
         } else {
-            // Блок 1: Рекомендовано с учетом ваших накоплений
             RecommendationCard(
                 recommendation = savingsBasedRecommendation,
                 isSelected = selectedTime == savingsBasedRecommendation,
@@ -352,7 +341,6 @@ fun CoolingTimeRecommendations(
                 amount = amountValue
             )
 
-            // Блок 2: Рекомендовано системой в связи с ценой больше предела
             RecommendationCard(
                 recommendation = systemBasedRecommendation,
                 isSelected = selectedTime == systemBasedRecommendation,
@@ -361,7 +349,6 @@ fun CoolingTimeRecommendations(
                 amount = amountValue
             )
 
-            // Подсказка с объяснением
             Text(
                 text = selectedTime?.let {
                     when (it.type) {
@@ -377,7 +364,6 @@ fun CoolingTimeRecommendations(
                 modifier = Modifier.padding(top = 8.dp)
             )
 
-            // Кнопка для пользовательского выбора
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -385,7 +371,6 @@ fun CoolingTimeRecommendations(
                     .clip(RoundedCornerShape(10.dp))
                     .background(Color(0xFF333333))
                     .clickable {
-                        // Можно добавить диалог для выбора произвольного времени
                         val customOption = CoolingTimeOption(
                             id = 3,
                             name = "Ваш выбор",
@@ -441,7 +426,6 @@ fun RecommendationCard(
         Column(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            // Первая строка: время и тип рекомендации
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -454,7 +438,6 @@ fun RecommendationCard(
                     fontWeight = FontWeight.Bold
                 )
 
-                // Метка типа рекомендации
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(4.dp))
@@ -472,16 +455,13 @@ fun RecommendationCard(
                 }
             }
 
-            // Описание рекомендации
             Text(
                 text = recommendation.description,
                 color = if (isSelected) Color(0xFFCCCCCC) else Color(0xFF888888),
                 fontSize = 11.sp
             )
 
-            // Дополнительная информация в зависимости от типа
             if (showSavingsInfo) {
-                // Информация о накоплениях
                 Text(
                     text = "Сумма ${formatMoney(amount)} составит ${calculateSavingsPercentage(amount)}% от ваших накоплений",
                     color = if (isSelected) Color(0xFFDDDDDD) else Color(0xFF777777),
@@ -489,7 +469,6 @@ fun RecommendationCard(
                     modifier = Modifier.padding(top = 2.dp)
                 )
             } else {
-                // Информация о превышении лимитов
                 val limitType = when {
                     amount < 15000 -> "дневного"
                     amount < 50000 -> "недельного"
@@ -504,7 +483,6 @@ fun RecommendationCard(
             }
         }
 
-        // Галочка выбора
         if (isSelected) {
             Box(
                 modifier = Modifier
@@ -525,14 +503,12 @@ fun RecommendationCard(
     }
 }
 
-// Вспомогательные функции
 fun formatMoney(amount: Double): String {
     return "%,d ₽".format(amount.toInt()).replace(',', ' ')
 }
 
 fun calculateSavingsPercentage(amount: Double): Int {
-    // Здесь можно подключить реальные данные о накоплениях из ViewModel
-    val totalSavings = 100000.0 // Пример: 100 000 ₽ накоплений
+    val totalSavings = 100000.0
     return ((amount / totalSavings) * 100).toInt().coerceAtLeast(1)
 }
 
@@ -546,7 +522,6 @@ fun SimpleTextField(
     var isFocused by remember { mutableStateOf(false) }
     var localValue by remember { mutableStateOf(value) }
 
-    // Синхронизируем с внешним значением
     LaunchedEffect(value) {
         if (localValue != value) {
             localValue = value
@@ -569,7 +544,6 @@ fun SimpleTextField(
         BasicTextField(
             value = localValue,
             onValueChange = { newValue ->
-                // Для текстовых полей - любой текст
                 localValue = newValue
                 onValueChange(newValue)
             },
@@ -617,7 +591,6 @@ fun SimpleNumericTextField(
     var isFocused by remember { mutableStateOf(false) }
     var localValue by remember { mutableStateOf(value) }
 
-    // Синхронизируем с внешним значением
     LaunchedEffect(value) {
         if (localValue != value) {
             localValue = value
@@ -655,7 +628,6 @@ fun SimpleNumericTextField(
                 }
             },
             onValueChange = { newValue ->
-                // Только цифры
                 val filtered = newValue.filter { it.isDigit() }
                 localValue = filtered
                 onValueChange(filtered)
@@ -667,7 +639,6 @@ fun SimpleNumericTextField(
                 .onFocusChanged { focusState ->
                     isFocused = focusState.isFocused
                     if (!focusState.isFocused) {
-                        // При потере фокуса сохраняем только цифры
                         val cleaned = localValue.filter { it.isDigit() }
                         localValue = cleaned
                     }
