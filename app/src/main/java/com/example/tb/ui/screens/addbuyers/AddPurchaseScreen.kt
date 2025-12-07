@@ -25,11 +25,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.window.Dialog
 import com.example.tb.R
 import com.example.tb.ui.screens.buyers.PurchaseViewModel
 import com.example.tb.ui.screens.cooling.CoolingRulesViewModel
 import com.example.tb.ui.screens.setting.SettingsViewModel
+import com.example.tb.ui.screens.blacklist.BlacklistViewModel
+import com.example.tb.ui.screens.blacklist.BlacklistCategory
 import kotlin.math.ceil
 
 // --- Определение классов внутри файла ---
@@ -69,6 +71,7 @@ fun AddPurchaseScreen(
     purchaseViewModel: PurchaseViewModel,
     coolingRulesViewModel: CoolingRulesViewModel,
     settingsViewModel: SettingsViewModel,
+    blacklistViewModel: BlacklistViewModel,
     onBackClick: () -> Unit = {},
     onAddClick: () -> Unit = {}
 ) {
@@ -78,11 +81,46 @@ fun AddPurchaseScreen(
     var amount by remember { mutableStateOf("") }
     var selectedCoolingTime by remember { mutableStateOf<CoolingTimeOption?>(null) }
 
+    // Состояние для проверки категории
+    var categoryError by remember { mutableStateOf<String?>(null) }
+    var isCategoryBlocked by remember { mutableStateOf(false) }
+    var showBlockedWarning by remember { mutableStateOf(false) }
+
     // Получаем текущие правила охлаждения
     val coolingRules by coolingRulesViewModel.state.collectAsState()
 
     // Получаем текущие настройки
     val settings by settingsViewModel.state.collectAsState()
+
+    // Получаем черный список
+    val blacklistState by blacklistViewModel.state.collectAsState()
+
+    // Функция проверки категории в черном списке
+    fun checkCategoryInBlacklist(categoryName: String): BlacklistCategory? {
+        return blacklistState.categories.find {
+            it.name.equals(categoryName, ignoreCase = true)
+        }
+    }
+
+    // При изменении категории проверяем черный список
+    LaunchedEffect(category) {
+        if (category.isNotEmpty()) {
+            val blockedCategory = checkCategoryInBlacklist(category)
+            // Используем безопасный вызов
+            isCategoryBlocked = blockedCategory?.isBlocked == true
+
+            if (isCategoryBlocked) {
+                categoryError = "Эта категория заблокирована на ${blockedCategory?.daysBlocked ?: 0} дней"
+            } else if (blockedCategory != null) {
+                categoryError = "⚠️ Эта категория в черном списке (трачено: ${formatMoney(blockedCategory.totalSpent)})"
+            } else {
+                categoryError = null
+            }
+        } else {
+            categoryError = null
+            isCategoryBlocked = false
+        }
+    }
 
     // Расчет рекомендованных времен на основе суммы, правил и настроек
     val (savingsBasedRecommendation, systemBasedRecommendation) =
@@ -181,25 +219,66 @@ fun AddPurchaseScreen(
                 )
             }
 
-            // Поле "Введите категорию"
+            // Поле "Введите категорию" - с проверкой черного списка
             Column(
                 modifier = Modifier
                     .width(278.dp),
                 horizontalAlignment = Alignment.Start
             ) {
-                Text(
-                    text = "Введите категорию:",
-                    color = Color.White,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Введите категорию:",
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+
+                    // Иконка предупреждения если категория в черном списке
+                    if (categoryError != null) {
+                        Box(
+                            modifier = Modifier
+                                .size(16.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFFFDD2D))
+                                .clickable { showBlockedWarning = true },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "!",
+                                color = Color.Black,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
 
                 SimpleTextField(
                     value = category,
-                    onValueChange = { category = it },
-                    placeholder = "Одежда"
+                    onValueChange = {
+                        category = it
+                        // Очищаем ошибку при изменении
+                        if (categoryError != null) {
+                            categoryError = null
+                        }
+                    },
+                    placeholder = "Одежда",
+                    isError = categoryError != null
                 )
+
+                // Сообщение об ошибке/предупреждении
+                if (categoryError != null) {
+                    Text(
+                        text = categoryError!!,
+                        color = if (isCategoryBlocked) Color(0xFFEE6B42) else Color(0xFFFFDD2D),
+                        fontSize = 10.sp,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
             }
 
             // Поле "Введите сумму"
@@ -246,24 +325,32 @@ fun AddPurchaseScreen(
                         val amountValue = amount.filter { it.isDigit() }.toDouble()
                         val coolingDays = selectedCoolingTime?.days ?: 0
 
-                        // Предположим, что у PurchaseViewModel есть метод addPurchase с coolingDays
-                        // Если нет - нужно его добавить
-                        purchaseViewModel.addPurchase(
-                            title = name,
-                            category = category,
-                            amount = amountValue,
-                            link = link,
-                            coolingDays = coolingDays // Добавляем сохранение времени охлаждения
-                        )
+                        // Проверяем категорию в черном списке
+                        val blockedCategory = checkCategoryInBlacklist(category)
 
-                        onAddClick()
-                        onBackClick()
+                        // Используем безопасный вызов
+                        if (blockedCategory?.isBlocked == true) {
+                            // Если категория заблокирована, показываем диалог подтверждения
+                            showBlockedWarning = true
+                        } else {
+                            // Если категория не заблокирована, добавляем покупку
+                            purchaseViewModel.addPurchase(
+                                title = name,
+                                category = category,
+                                amount = amountValue,
+                                link = link,
+                                coolingDays = coolingDays
+                            )
+
+                            onAddClick()
+                            onBackClick()
+                        }
                     } catch (e: NumberFormatException) {
                         // Обработка ошибки
                     }
                 }
             },
-            enabled = name.isNotEmpty() && category.isNotEmpty() && amount.isNotEmpty(),
+            enabled = name.isNotEmpty() && category.isNotEmpty() && amount.isNotEmpty() && !isCategoryBlocked,
             modifier = Modifier
                 .width(296.dp)
                 .height(96.dp)
@@ -271,7 +358,7 @@ fun AddPurchaseScreen(
                 .padding(bottom = 42.dp),
             shape = RoundedCornerShape(15.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = if (name.isNotEmpty() && category.isNotEmpty() && amount.isNotEmpty())
+                containerColor = if (name.isNotEmpty() && category.isNotEmpty() && amount.isNotEmpty() && !isCategoryBlocked)
                     Color(0xFFFFDD2D)
                 else
                     Color(0xFF616161),
@@ -280,12 +367,164 @@ fun AddPurchaseScreen(
             contentPadding = PaddingValues(horizontal = 25.dp, vertical = 16.dp)
         ) {
             Text(
-                text = "Добавить",
+                text = if (isCategoryBlocked) "Категория заблокирована" else "Добавить",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Normal,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
+        }
+    }
+
+    // Диалог предупреждения о заблокированной категории
+    if (showBlockedWarning) {
+        val blockedCategory = checkCategoryInBlacklist(category)
+        BlockedCategoryDialog(
+            categoryName = category,
+            blockedCategory = blockedCategory,
+            onConfirm = {
+                showBlockedWarning = false
+                // Пользователь подтверждает, что понимает риск
+                try {
+                    val amountValue = amount.filter { it.isDigit() }.toDouble()
+                    val coolingDays = selectedCoolingTime?.days ?: 0
+
+                    purchaseViewModel.addPurchase(
+                        title = name,
+                        category = category,
+                        amount = amountValue,
+                        link = link,
+                        coolingDays = coolingDays
+                    )
+
+                    onAddClick()
+                    onBackClick()
+                } catch (e: NumberFormatException) {
+                    // Обработка ошибки
+                }
+            },
+            onDismiss = {
+                showBlockedWarning = false
+            }
+        )
+    }
+}
+
+// Диалог для заблокированной категории
+@Composable
+fun BlockedCategoryDialog(
+    categoryName: String,
+    blockedCategory: BlacklistCategory?,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xFF3D1A1A))
+                .padding(16.dp)
+        ) {
+            Column {
+                Text(
+                    text = "⚠️ Внимание!",
+                    color = Color(0xFFEE6B42),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                if (blockedCategory != null && blockedCategory.isBlocked) {
+                    Text(
+                        text = "Категория \"$categoryName\" заблокирована на ${blockedCategory.daysBlocked} дней!",
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    Text(
+                        text = "Вы уже потратили ${formatMoney(blockedCategory.totalSpent)} в этой категории.",
+                        color = Color(0xFFAAAAAA),
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    Text(
+                        text = "Действительно хотите добавить покупку в заблокированную категорию?",
+                        color = Color(0xFFFFB74D),
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                } else if (blockedCategory != null) {
+                    Text(
+                        text = "Категория \"$categoryName\" находится в черном списке.",
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    Text(
+                        text = "Вы уже потратили ${formatMoney(blockedCategory.totalSpent)} в этой категории.",
+                        color = Color(0xFFAAAAAA),
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    Text(
+                        text = "Возможно, стоит выбрать другую категорию.",
+                        color = Color(0xFFFFB74D),
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                } else {
+                    Text(
+                        text = "Категория \"$categoryName\"",
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    Text(
+                        text = "Вы действительно хотите добавить покупку?",
+                        color = Color(0xFFAAAAAA),
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFF2A5A2A))
+                            .clickable(onClick = onDismiss),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Изменить категорию",
+                            color = Color(0xFF13B008),
+                            fontSize = 14.sp
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFF653E31))
+                            .clickable(onClick = onConfirm),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Всё равно добавить",
+                            color = Color(0xFFEE6B42),
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -744,13 +983,14 @@ fun getSystemLimitInfo(
     }
 }
 
-// --- Компоненты полей ввода (из вашего оригинального файла) ---
+// --- Компоненты полей ввода ---
 
 @Composable
 fun SimpleTextField(
     value: String,
     onValueChange: (String) -> Unit,
-    placeholder: String
+    placeholder: String,
+    isError: Boolean = false
 ) {
     val focusRequester = remember { FocusRequester() }
     var isFocused by remember { mutableStateOf(false) }
@@ -770,7 +1010,11 @@ fun SimpleTextField(
             .background(Color(0xFF333333))
             .border(
                 width = 1.dp,
-                color = if (isFocused) Color(0xFF2A64D9) else Color.Transparent,
+                color = when {
+                    isError -> Color(0xFFEE6B42)
+                    isFocused -> Color(0xFF2A64D9)
+                    else -> Color.Transparent
+                },
                 shape = RoundedCornerShape(10.dp)
             )
             .clickable { focusRequester.requestFocus() }

@@ -9,21 +9,21 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.tb.ui.navigation.Screen
+import com.example.tb.ui.screens.addbuyers.AddPurchaseScreen
+import com.example.tb.ui.screens.blacklist.BlackListScreen
+import com.example.tb.ui.screens.blacklist.BlacklistViewModel
+import com.example.tb.ui.screens.buyers.PurchaseScreen
+import com.example.tb.ui.screens.buyers.PurchaseViewModel
+import com.example.tb.ui.screens.cooling.CoolingRulesScreen
+import com.example.tb.ui.screens.cooling.CoolingRulesViewModel
+import com.example.tb.ui.screens.finance.FinanceScreen
 import com.example.tb.ui.screens.home.HomeScreen
 import com.example.tb.ui.screens.setting.SettingsMainScreen
-import com.example.tb.ui.screens.cooling.CoolingRulesScreen
-import com.example.tb.ui.screens.buyers.PurchaseScreen
-import com.example.tb.ui.screens.addbuyers.AddPurchaseScreen
-import com.example.tb.ui.screens.finance.FinanceScreen
-import com.example.tb.ui.screens.blacklist.BlackListScreen
-import com.example.tb.ui.screens.blacklist.AddCategoryScreen
-import com.example.tb.ui.screens.buyers.PurchaseViewModel
-import com.example.tb.ui.screens.cooling.CoolingRulesViewModel
 import com.example.tb.ui.screens.setting.SettingsViewModel
 
 @Composable
@@ -35,11 +35,13 @@ fun MainScreen() {
     val purchaseViewModel: PurchaseViewModel = viewModel()
     val coolingRulesViewModel: CoolingRulesViewModel = viewModel()
     val settingsViewModel: SettingsViewModel = viewModel()
+    val blacklistViewModel: BlacklistViewModel = viewModel() // Теперь эта строка работает
 
     // Загружаем данные при инициализации
     LaunchedEffect(Unit) {
         coolingRulesViewModel.loadRules(context)
         settingsViewModel.loadSettings(context)
+        // Загрузка черного списка не требуется, так как он уже загружается в init
     }
 
     Surface(
@@ -73,6 +75,7 @@ fun MainScreen() {
             // Черный список
             composable(Screen.Blacklist.route) {
                 BlackListScreen(
+                    viewModel = blacklistViewModel, // Передаем ViewModel
                     onBackClick = { navController.navigateUp() },
                     onAddCategoryClick = {
                         navController.navigate(Screen.AddCategory.route)
@@ -80,15 +83,6 @@ fun MainScreen() {
                 )
             }
 
-            // Добавление категории
-            composable(Screen.AddCategory.route) {
-                AddCategoryScreen(
-                    onBackClick = { navController.navigateUp() },
-                    onSaveClick = { selectedCategories ->
-                        navController.navigateUp()
-                    }
-                )
-            }
 
             // Финансы
             composable(Screen.Finance.route) {
@@ -114,6 +108,7 @@ fun MainScreen() {
                     purchaseViewModel = purchaseViewModel,
                     coolingRulesViewModel = coolingRulesViewModel,
                     settingsViewModel = settingsViewModel,
+                    blacklistViewModel = blacklistViewModel, // Теперь работает
                     onBackClick = { navController.navigateUp() },
                     onAddClick = {
                         navController.navigateUp()
@@ -129,7 +124,9 @@ fun MainScreen() {
                     onCoolingRulesClick = {
                         navController.navigate(Screen.CoolingRules.route)
                     },
-                    onSaveSuccess = {}
+                    onSaveSuccess = {
+                        // Можно добавить toast или сообщение об успехе
+                    }
                 )
             }
 

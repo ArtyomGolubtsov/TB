@@ -24,6 +24,7 @@ import com.example.tb.R
 
 @Composable
 fun BlackListScreen(
+    viewModel: BlacklistViewModel,
     onBackClick: () -> Unit = {},
     onAddCategoryClick: () -> Unit = {}
 ) {
