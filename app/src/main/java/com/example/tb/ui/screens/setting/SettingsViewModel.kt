@@ -3,6 +3,7 @@ package com.example.tb.ui.screens.setting
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.tb.ui.notifications.NotificationScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,11 +30,29 @@ data class SettingsState(
     fun getCurrentSavingsAsInt(): Int? = currentSavings.toIntOrNull()
 }
 
-enum class NotificationFrequency(val displayName: String) {
-    DAILY("Ежедневно"),
-    WEEKLY("Раз в неделю"),
-    BIWEEKLY("Раз в две недели"),
-    MONTHLY("Раз в месяц")
+/**
+ * Частота напоминаний. Добавили длительность в миллисекундах.
+ */
+enum class NotificationFrequency(
+    val displayName: String,
+    val intervalMillis: Long
+) {
+    DAILY(
+        "Ежедневно",
+        24L * 60L * 60L * 1000L
+    ),
+    WEEKLY(
+        "Раз в неделю",
+        7L * 24L * 60L * 60L * 1000L
+    ),
+    BIWEEKLY(
+        "Раз в две недели",
+        14L * 24L * 60L * 60L * 1000L
+    ),
+    MONTHLY(
+        "Раз в месяц",
+        30L * 24L * 60L * 60L * 1000L
+    )
 }
 
 enum class NotificationChannel(val displayName: String) {
@@ -110,7 +129,7 @@ class SettingsViewModel : ViewModel() {
     }
 
     /**
-     * Сохраняем настройки в SharedPreferences.
+     * Сохраняем настройки в SharedPreferences + настраиваем напоминания.
      */
     fun saveSettings(
         context: Context,
@@ -144,6 +163,7 @@ class SettingsViewModel : ViewModel() {
                 return@launch
             }
 
+            // 1. Сохраняем настройки
             saveToPreferences(
                 context = context,
                 monthlySavings = currentState.getMonthlySavingsAsInt() ?: 0,
@@ -152,6 +172,12 @@ class SettingsViewModel : ViewModel() {
                 currentSavings = currentState.getCurrentSavingsAsInt() ?: 0,
                 notificationFrequency = currentState.notificationFrequency,
                 notificationChannel = currentState.notificationChannel
+            )
+
+            // 2. Настраиваем периодические уведомления
+            NotificationScheduler.scheduleCoolingReminder(
+                context = context,
+                frequency = currentState.notificationFrequency
             )
 
             onSuccess()

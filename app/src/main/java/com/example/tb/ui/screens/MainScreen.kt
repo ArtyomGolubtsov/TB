@@ -27,7 +27,7 @@ import com.example.tb.ui.screens.setting.SettingsMainScreen
 import com.example.tb.ui.screens.setting.SettingsViewModel
 
 @Composable
-fun MainScreen() {
+fun MainScreen(startDestinationRoute: String = Screen.Home.route) {
     val navController = rememberNavController()
     val context = LocalContext.current
 
